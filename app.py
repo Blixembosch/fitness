@@ -2381,7 +2381,7 @@ def page_nutrition():
 
     tab_log, tab_plan, tab_grocery = st.tabs([
         "📊 Günlük Takip & Makrolar",
-        "🥗 4 Öğünlü Akıllı Menü (Evdeki Malzemelerle)",
+        "🥗 4 Öğünlü Akıllı Menü",
         "🛒 7 Günlük Menü & Alışveriş Listesi (Albert Heijn)",
     ])
 
