@@ -4,7 +4,7 @@
 > **Hedef:** Wegovy (GLP-1) protokolünde kas kütlesini koruma/artırma, yağ yakımı, padel performansı ve metabolik sağlık  
 > **Teknoloji:** Python 3.14 · Streamlit · SQLite (`data/fitness.db`) · GitHub Data Branch (`Blixembosch/fitness:data`)  
 > **Resmi Başlangıç:** 25 Ekim 2026 (Pazar) · **İlk Wegovy Dozu:** 27 Ekim 2026 (Salı)  
-> **Kalite Güvencesi:** 120 Otomatik Test (%100 Yeşil) · Doküman & Kapsam Bekçileri (Guards)
+> **Kalite Güvencesi:** 121 Otomatik Test (%100 Yeşil) · Doküman & Kapsam Bekçileri (Guards)
 
 ---
 
@@ -60,15 +60,19 @@ ATES FAM Fitness; kilo verme sürecinde kas kaybını (**sarkopeni**) önleyen, 
 - [x] Kütüphanede arama (`🔍 Kütüphanede Ara`) ve kategori filtreleme.
 - [x] Eklenen özel ürünleri arayüzden düzenleme (✏️) ve silme (🗑️).
 
-### 🟢 V1.5 — Klinik Takviye Protokolü & GLP-1 Destek Takibi (Ekim 2026)
-- [x] Kullanıcının elindeki 5 takviyenin öğünlere klinik eşleştirmesi:
-  - **🌅 Sabah (Kahvaltı):** Ocean Daily One Multivitamin (1 tb) + Ocean D3 1000 IU Sprey (2 puff / 2000 IU).
-  - **☀️ Öğle / Ara Öğün:** Ocean C Vitamini 1000 mg (1 tb) + Orzax Ocean Bromelain 500 mg (1 kap - protein sindirimi & şişkinlik önleme).
-  - **🌙 Gece (Yatmadan):** Orzax Ocean ExtraMag Üçlü Magnezyum (1 tb - kabızlık önleme, kramp & derin uyku).
-- [x] Her öğün kartında mor renkli takviye rozetleri (`💊 Takviye:`).
-- [x] Günlük interaktif takviye takip kutucukları ve kalıcı kayıt (`supplements_log`).
-- [x] WhatsApp günlük menü çıktısına takviye protokolünün otomatik eklenmesi.
-- [x] 120/120 tam yeşil test paketi ve Doküman/Kapsam Bekçileri (`test_doc_and_scope_guard.py`).
+### 🟢 V1.5 — 2 Kademeli Klinik Takviye & Elektrolit Protokolü (Ekim 2026)
+- [x] Bilinçli takviye mimarisi: **🟢 Temel Rutin** ve **🟡 Sadece İhtiyaç Halinde** ayrımı:
+  - **🟢 Temel Günlük Rutin:**
+    - **Sabah (Kahvaltı İle):** Ocean Daily One Multivitamin (1 tb) + Ocean D3 1000 IU Sprey (2 puff / 2000 IU).
+    - **Öğleden Sonra / Padel:** Avoya Sert İçim Doğal Maden Suyu (1 şişe 200 ml) veya AH Sade Soda (250–500 ml) — GLP-1 sodyum atılımı (natriürez), tansiyon düşmesi ve kramp önleme.
+    - **Gece (Yatmadan):** Orzax Ocean ExtraMag Üçlü Magnezyum (1 tb) — GLP-1 kabızlığını önleme, kas kramplarını engelleme ve derin uyku.
+  - **🟡 Sadece İhtiyaç Halinde (Semptomatik):**
+    - **Şişkinlik / Ağır Öğün Sonrası:** Orzax Ocean Bromelain 500 mg (1 kap) — ağır et/bakliyat sonrası hazımsızlık veya belirgin ödemde kurtarıcı sindirim enzimi.
+    - **Halsizlik / Bağışıklık Riski:** Ocean C Vitamini 1000 mg + Bioflavonoid (1 tb) — kırgınlık başlangıcında destek.
+- [x] Her öğün kartında rozet ayrımı (`🟢 Temel` vs `🟡 İhtiyaçta`).
+- [x] Günlük interaktif takviye & maden suyu takip kutucukları ve kalıcı kayıt (`supplements_log`).
+- [x] WhatsApp günlük menü çıktısına 2 kademeli protokolün estetik entegrasyonu.
+- [x] 121/121 tam yeşil test paketi ve Doküman/Kapsam Bekçileri (`test_doc_and_scope_guard.py`).
 
 ---
 

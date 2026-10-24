@@ -91,7 +91,7 @@ def test_home_product_library():
     assert any("AH Protein Mousse" in n for n in names)
     assert any("Tavuk Göğsü" in n for n in names)
     for p in prods:
-        assert p["kcal"] > 0
+        assert p["kcal"] >= 0
         assert "protein" in p
         assert "fat" in p
         assert "carbs" in p
@@ -148,10 +148,11 @@ def test_lookup_food_macros():
 
 def test_supplement_protocol():
     sups = mp.get_supplement_protocol()
-    assert len(sups) == 5
+    assert len(sups) == 6
     ids = [s["id"] for s in sups]
     assert "multi" in ids
     assert "d3" in ids
+    assert "soda" in ids
     assert "vitc" in ids
     assert "bromelain" in ids
     assert "magnesium" in ids
@@ -160,19 +161,54 @@ def test_supplement_protocol():
     b_sups = mp.get_meal_supplements("breakfast")
     assert len(b_sups) == 2  # multi + d3
 
+    snack_sups = mp.get_meal_supplements("snack")
+    assert len(snack_sups) == 1  # soda
+
     l_sups = mp.get_meal_supplements("lunch")
     assert len(l_sups) == 2  # vitc + bromelain
 
     d_sups = mp.get_meal_supplements("dinner")
     assert len(d_sups) == 1  # magnesium
 
-    # WhatsApp plan includes supplement block
+    # WhatsApp plan includes tiered supplement block
     sample = {"breakfast": "b1", "lunch": "l1", "snack": "s1", "dinner": "d1"}
     msg = mp.format_whatsapp_daily_plan(sample, "Pazar")
-    assert "GÜNLÜK TAKVİYE PROTOKOLÜ" in msg
+    assert "GÜNLÜK TAKVİYE & ELEKTROLİT PROTOKOLÜ" in msg
+    assert "TEMEL GÜNLÜK RUTİN" in msg
+    assert "SADECE İHTİYAÇ HALİNDE" in msg
     assert "Multivitamin" in msg
     assert "D3 Sprey" in msg
+    assert "Avoya" in msg or "Soda" in msg
     assert "ExtraMag" in msg
     assert "Bromelain" in msg
+
+
+def test_supplement_tiers_and_mineral_water():
+    """Verify tier separation between daily core routine and symptomatic items, plus mineral water lookup."""
+    core = mp.get_core_supplements()
+    assert len(core) == 4
+    core_ids = {s["id"] for s in core}
+    assert core_ids == {"multi", "d3", "soda", "magnesium"}
+
+    as_needed = mp.get_as_needed_supplements()
+    assert len(as_needed) == 2
+    as_needed_ids = {s["id"] for s in as_needed}
+    assert as_needed_ids == {"bromelain", "vitc"}
+
+    # Check that Avoya and AH Soda are findable via offline staples and home product catalog
+    avoya = mp.lookup_food_macros("avoya", grams=200)
+    assert avoya is not None
+    assert "Avoya" in avoya["name"]
+    assert avoya["kcal"] == 0
+
+    soda = mp.lookup_food_macros("soda", grams=250)
+    assert soda is not None
+    assert "Soda" in soda["name"] or "Bronwater" in soda["name"]
+
+    prods = mp.get_home_products()
+    p_names = [p["name"] for p in prods]
+    assert any("Avoya" in n for n in p_names)
+    assert any("Soda" in n for n in p_names)
+
 
 

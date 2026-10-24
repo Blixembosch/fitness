@@ -2039,8 +2039,15 @@ def _render_meal_planner():
 
                     meal_sups = meal_planner.get_meal_supplements(cat_key)
                     if meal_sups:
-                        sup_items_str = " · ".join(f"{s['name'].split()[1] if len(s['name'].split())>1 else s['name']} ({s['dose'].split('(')[0].strip()})" for s in meal_sups)
-                        sups_badge_html = f"<div style='background:rgba(147,51,234,0.08);border-left:3px solid #9333ea;padding:5px 8px;border-radius:4px;font-size:11px;color:var(--fg);margin-bottom:6px'>💊 <b>Takviye:</b> {sup_items_str}</div>"
+                        parts = []
+                        for s in meal_sups:
+                            is_opt = s.get("tier") == "as_needed"
+                            tag = "🟡 İhtiyaçta: " if is_opt else "🟢 "
+                            sname = s['name'].split()[1] if len(s['name'].split()) > 1 else s['name']
+                            sdose = s['dose'].split('(')[0].strip()
+                            parts.append(f"{tag}{sname} ({sdose})")
+                        sup_items_str = " · ".join(parts)
+                        sups_badge_html = f"<div style='background:rgba(147,51,234,0.08);border-left:3px solid #9333ea;padding:5px 8px;border-radius:4px;font-size:11px;color:var(--fg);margin-bottom:6px'>💊 <b>Takviye & Destek:</b> {sup_items_str}</div>"
                     else:
                         sups_badge_html = ""
 
@@ -2210,12 +2217,15 @@ def _render_meal_planner():
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown(
-            "<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>"
+            "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px'>"
+            "<div style='display:flex;align-items:center;gap:8px'>"
             "<span style='font-size:18px'>💊</span>"
             "<span style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>Günlük Takviye & GLP-1 Destek Takibi</span>"
             "</div>"
+            "<div style='font-size:11px;background:rgba(52,211,153,0.15);color:var(--green);padding:3px 9px;border-radius:12px;font-weight:700'>🟢 Temel Rutin & 🟡 İhtiyaç Halinde</div>"
+            "</div>"
             "<div style='font-size:12px;color:var(--muted);margin-bottom:12px'>"
-            "Wegovy ile azalan porsiyonlarda mikronütrient açığını kapatmak, kas kütlesini korumak ve sindirimi (şişkinlik, kabızlık, kramp) optimize etmek için evdeki takviyelerinizle oluşturulan günlük protokol:"
+            "Wegovy ile azalan porsiyonlarda mikronütrient açığını kapatmak, kas kütlesini korumak, sodyum/elektrolit dengesini sağlamak ve sindirimi optimize etmek için evdeki takviyelerinizle oluşturulan 2 kademeli protokol:"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -2225,6 +2235,7 @@ def _render_meal_planner():
             S["supplements_log"] = {}
         sup_logs = S["supplements_log"].setdefault(today_iso, {})
 
+        st.markdown("<div style='font-weight:800;font-size:12.5px;color:var(--green);margin-bottom:6px'>🟢 TEMEL GÜNLÜK RUTİN (Düzenli & Zorunlu Desteğiniz)</div>", unsafe_allow_html=True)
         c_sup1, c_sup2, c_sup3 = st.columns(3, gap="medium")
 
         with c_sup1:
@@ -2253,30 +2264,23 @@ def _render_meal_planner():
         with c_sup2:
             st.markdown(
                 "<div style='background:rgba(56,152,255,0.1);padding:6px 10px;border-radius:6px;margin-bottom:8px'>"
-                "<div style='font-size:11.5px;font-weight:800;color:var(--blue)'>☀️ ÖĞLE / ARA ÖĞÜN (13:00 - 15:30)</div>"
-                "<div style='font-size:10.5px;color:var(--muted)'>Yemekle birlikte · Sindirim ve ödem desteği</div>"
+                "<div style='font-size:11.5px;font-weight:800;color:var(--blue)'>⚡ ÖĞLE / PADEL (15:00 - 18:00)</div>"
+                "<div style='font-size:10.5px;color:var(--muted)'>Antrenman veya öğleden sonra</div>"
                 "</div>",
                 unsafe_allow_html=True,
             )
-            chk_vitc = st.checkbox(
-                "Ocean C Vitamini 1000 mg + Bioflavonoid",
-                value=bool(sup_logs.get("vitc", False)),
-                key=f"sup_chk_vitc_{today_iso}",
-                help="1 Tablet. Kilo kaybında cilt elastikiyeti, kolajen ve antioksidan koruma."
+            chk_soda = st.checkbox(
+                "Avoya Sert İçim / AH Sade Soda",
+                value=bool(sup_logs.get("soda", False)),
+                key=f"sup_chk_soda_{today_iso}",
+                help="1 Şişe (200ml Avoya) veya 250-500ml AH Sade Soda. GLP-1 natriürezi (tuz atılımı) ve spor terlemesini telafi eder; tansiyon düşmesini ve krampları önler."
             )
-            st.caption("🍊 1 Tablet · Kolajen & Cilt Koruma")
-            chk_brom = st.checkbox(
-                "Orzax Ocean Bromelain 500 mg",
-                value=bool(sup_logs.get("bromelain", False)),
-                key=f"sup_chk_brom_{today_iso}",
-                help="1 Kapsül. Doğal ananas enzimi; protein sindirimini hızlandırır, Wegovy şişkinliğini önler."
-            )
-            st.caption("🍍 1 Kapsül · Protein Sindirimi & Şişkinlik Önleme")
+            st.caption("💧 1 Şişe (200ml Avoya) / AH Soda · Sodyum & Elektrolit")
 
         with c_sup3:
             st.markdown(
                 "<div style='background:rgba(147,51,234,0.1);padding:6px 10px;border-radius:6px;margin-bottom:8px'>"
-                "<div style='font-size:11.5px;font-weight:800;color:var(--purple)'>🌙 GECE (21:30 - 22:30 Yatmadan)</div>"
+                "<div style='font-size:11.5px;font-weight:800;color:var(--purple)'>🌙 GECE (21:30 - Yatmadan)</div>"
                 "<div style='font-size:10.5px;color:var(--muted)'>Yatmadan önce bol suyla</div>"
                 "</div>",
                 unsafe_allow_html=True,
@@ -2289,12 +2293,49 @@ def _render_meal_planner():
             )
             st.caption("🧘 1 Tablet · Kabızlık Önleme, Kramp & Derin Uyku")
 
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='font-weight:800;font-size:12.5px;color:var(--orange);margin-bottom:6px'>🟡 SADECE İHTİYAÇ HALİNDE (Semptomatik / Dolapta Bekleyecekler)</div>", unsafe_allow_html=True)
+        c_opt1, c_opt2 = st.columns(2, gap="medium")
+
+        with c_opt1:
+            st.markdown(
+                "<div style='background:rgba(234,179,8,0.08);padding:6px 10px;border-radius:6px;margin-bottom:8px'>"
+                "<div style='font-size:11.5px;font-weight:800;color:#ca8a04'>🍍 ŞİŞKİNLİK / MİDE DOLGUNLUĞU / ÖDEM</div>"
+                "<div style='font-size:10.5px;color:var(--muted)'>Ağır proteinli öğün sırasında veya hemen sonrasında</div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            chk_brom = st.checkbox(
+                "Orzax Ocean Bromelain 500 mg",
+                value=bool(sup_logs.get("bromelain", False)),
+                key=f"sup_chk_brom_{today_iso}",
+                help="1 Kapsül. Doğal ananas enzimi; protein sindirimini hızlandırır, Wegovy'nin mide boşalmasını geciktirmesine bağlı şişkinlik ve gazı hafifletir."
+            )
+            st.caption("🍍 1 Kapsül · Yalnızca hazımsızlık veya belirgin ödem olduğunda kurtarıcı")
+
+        with c_opt2:
+            st.markdown(
+                "<div style='background:rgba(234,179,8,0.08);padding:6px 10px;border-radius:6px;margin-bottom:8px'>"
+                "<div style='font-size:11.5px;font-weight:800;color:#ca8a04'>🍊 HALSİZLİK / BAĞIŞIKLIK DÜŞÜŞÜ</div>"
+                "<div style='font-size:10.5px;color:var(--muted)'>Öğle yemeğiyle tok karnına</div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            chk_vitc = st.checkbox(
+                "Ocean C Vitamini 1000 mg + Bioflavonoid",
+                value=bool(sup_logs.get("vitc", False)),
+                key=f"sup_chk_vitc_{today_iso}",
+                help="1 Tablet. Yüksek doz asidik C vitamini; kırgınlık veya bağışıklık düşüşünde yemekle alınır."
+            )
+            st.caption("🍊 1 Tablet · Yalnızca kırgınlık, grip riski veya yoğun halsizlikte")
+
         new_sup_state = {
             "multi": chk_multi,
             "d3": chk_d3,
-            "vitc": chk_vitc,
-            "bromelain": chk_brom,
+            "soda": chk_soda,
             "magnesium": chk_mag,
+            "bromelain": chk_brom,
+            "vitc": chk_vitc,
         }
         if new_sup_state != sup_logs:
             S["supplements_log"][today_iso] = new_sup_state

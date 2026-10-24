@@ -34,10 +34,10 @@ def test_document_guard_readme():
     assert "GitHub Data Branch" in content
     assert "ROADMAP.md" in content
 
-    # Test count must be synchronized to 120
+    # Test count must be synchronized to 121
     match = re.search(r"(\d+)\s+otomatik\s+birim", content)
     assert match is not None, "README.md must mention automated test count"
-    assert int(match.group(1)) == 120, f"README.md test count ({match.group(1)}) must match total suite count (120)"
+    assert int(match.group(1)) == 121, f"README.md test count ({match.group(1)}) must match total suite count (121)"
 
 
 def test_document_guard_roadmap():
@@ -55,7 +55,7 @@ def test_document_guard_roadmap():
     assert "Aktif Sprint" in content
     assert "Gelecek Yol Haritası" in content
     assert "Kalite Güvencesi ve Bekçi Mekanizması" in content
-    assert "120" in content, "ROADMAP.md must mention 120 automated tests"
+    assert "121" in content, "ROADMAP.md must mention 121 automated tests"
 
 
 def test_scope_guard_invariants():
@@ -83,13 +83,15 @@ def test_scope_guard_invariants():
     assert len(prods) >= 20, "HOME_PRODUCT_LIBRARY must contain at least 20 staple products"
     for p in prods:
         assert "name" in p and "portion" in p and "kcal" in p and "protein" in p
-        assert p["kcal"] > 0 and p["protein"] >= 0
+        assert p["kcal"] >= 0 and p["protein"] >= 0
 
     # 3. Clinical supplement protocol
     sups = meal_planner.get_supplement_protocol()
-    assert len(sups) == 5, "SUPPLEMENT_PROTOCOL must contain exactly the 5 user supplements"
+    assert len(sups) == 6, "SUPPLEMENT_PROTOCOL must contain exactly 6 protocol items (core + as-needed)"
     sup_ids = {s["id"] for s in sups}
-    assert {"multi", "d3", "vitc", "bromelain", "magnesium"}.issubset(sup_ids)
+    assert {"multi", "d3", "soda", "vitc", "bromelain", "magnesium"}.issubset(sup_ids)
+    assert len(meal_planner.get_core_supplements()) == 4
+    assert len(meal_planner.get_as_needed_supplements()) == 2
 
     # 4. Meal database integrity
     db = meal_planner.MEAL_DATABASE
@@ -104,7 +106,7 @@ def test_scope_guard_invariants():
 
 
 def test_progression_to_regression_auto_expansion():
-    """Verify that all test files in tests/ are discovered and total test count equals 120."""
+    """Verify that all test files in tests/ are discovered and total test count equals 121."""
     test_files = sorted(glob.glob(str(WORKSPACE_DIR / "tests" / "test_*.py")))
     assert len(test_files) >= 12, f"Expected at least 12 test files, found {len(test_files)}"
 
@@ -119,7 +121,7 @@ def test_progression_to_regression_auto_expansion():
         ]
         total_test_functions += len(funcs)
 
-    assert total_test_functions == 120, (
-        f"Total test suite count is {total_test_functions}, expected 120. "
+    assert total_test_functions == 121, (
+        f"Total test suite count is {total_test_functions}, expected 121. "
         f"When adding new tests, update README.md, ROADMAP.md, and this guard together!"
     )

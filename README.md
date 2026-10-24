@@ -62,7 +62,7 @@ Projenin uzun vadeli vizyonu, tamamlanan kilometre taşları ve aktif sprint pla
 
 ## Test ve Kalite Güvencesi
 
-Proje, 120 otomatik birim, erişilebilirlik, Plan-Antrenman akıllı yönlendirme, 4 öğünlü menü planlayıcı, Doküman ve Kapsam Bekçileri (`tests/test_doc_and_scope_guard.py`) ve 5 sayfanın CSS/bileşen bütünlüğünü denetleyen Streamlit `AppTest` fonksiyonel testi ile korunur:
+Proje, 121 otomatik birim, erişilebilirlik, Plan-Antrenman akıllı yönlendirme, 4 öğünlü menü planlayıcı, 2 kademeli takviye & elektrolit protokolü (Temel Rutin & İhtiyaç Halinde), Doküman ve Kapsam Bekçileri (`tests/test_doc_and_scope_guard.py`) ve 5 sayfanın CSS/bileşen bütünlüğünü denetleyen Streamlit `AppTest` fonksiyonel testi ile korunur:
 ```bash
 /usr/local/bin/python3 run_tests.py
 ```

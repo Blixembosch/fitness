@@ -235,6 +235,28 @@ HOME_PRODUCT_LIBRARY: list[dict] = [
         "fiber": 5.5,
         "notes": "Prebiyotik lif ve bitkisel protein sinerjisi.",
     },
+    {
+        "name": "Avoya Sert İçim Sade Maden Suyu",
+        "category": "İçecek & Elektrolit",
+        "portion": "1 şişe (200ml)",
+        "kcal": 0,
+        "protein": 0.0,
+        "fat": 0.0,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Doğal mineralli su (sodyum, bikarbonat, magnezyum). GLP-1 sodyum kaybını ve spor kramplarını önler.",
+    },
+    {
+        "name": "AH Sade Soda (Bronwater Rood)",
+        "category": "İçecek & Elektrolit",
+        "portion": "1 bardak (250ml)",
+        "kcal": 0,
+        "protein": 0.0,
+        "fat": 0.0,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Gazlı doğal maden suyu / soda; hidrasyon ve sindirim rahatlığı sağlar.",
+    },
 ]
 
 
@@ -776,6 +798,8 @@ SUPPLEMENT_PROTOCOL: list[dict] = [
     {
         "id": "multi",
         "name": "Ocean Daily One Energy Multivitamin & Multimineral",
+        "tier": "core",
+        "tier_label": "🟢 Temel Rutin",
         "meal": "breakfast",
         "meal_title": "1. Kahvaltı",
         "time": "08:30 - 09:30",
@@ -786,6 +810,8 @@ SUPPLEMENT_PROTOCOL: list[dict] = [
     {
         "id": "d3",
         "name": "Ocean Vitamin D3 1000 IU Sprey",
+        "tier": "core",
+        "tier_label": "🟢 Temel Rutin",
         "meal": "breakfast",
         "meal_title": "1. Kahvaltı",
         "time": "08:30 - 09:30",
@@ -794,28 +820,22 @@ SUPPLEMENT_PROTOCOL: list[dict] = [
         "glp1_benefit": "Kilo verme sürecinde kemik mineral yoğunluğunu korur, kas protein sentezini ve bağışıklığı destekler.",
     },
     {
-        "id": "vitc",
-        "name": "Ocean C Vitamini 1000 mg + Bioflavonoidler",
-        "meal": "lunch",
-        "meal_title": "2. Öğle Yemeği",
-        "time": "12:30 - 13:30",
-        "dose": "1 Tablet (Yemekle birlikte)",
-        "timing_reason": "Asidik yapısı nedeniyle yemekle alınması mideyi korur. Bioflavonoidler C vitamininin biyoyararlanımını artırır.",
-        "glp1_benefit": "Hızlı kilo kaybında kolajen sentezini uyararak cilt sarkmasını önler, hücreleri oksidatif stresten korur.",
-    },
-    {
-        "id": "bromelain",
-        "name": "Orzax Ocean Bromelain 500 Mg",
-        "meal": "lunch",
-        "meal_title": "2. Öğle Yemeği / 3. Ara Öğün",
-        "time": "13:00 - 16:00",
-        "dose": "1 Kapsül (Ana protein öğünüyle veya hemen öncesinde)",
-        "timing_reason": "Ağır proteinli öğünden hemen önce veya öğün sırasında alınır.",
-        "glp1_benefit": "Doğal ananas enzimi; proteinlerin sindirimini hızlandırır, Wegovy'nin mide boşalmasını geciktirmesine bağlı şişkinlik ve gazı hafifletir, ödem atımını destekler.",
+        "id": "soda",
+        "name": "Avoya Sert İçim Doğal Maden Suyu / AH Sade Soda",
+        "tier": "core",
+        "tier_label": "🟢 Temel Rutin",
+        "meal": "snack",
+        "meal_title": "3. Ara Öğün / Padel Sonrası",
+        "time": "15:00 - 17:30",
+        "dose": "1 Şişe (200 ml Avoya) veya 250–500 ml AH Sade Soda",
+        "timing_reason": "Öğleden sonra veya antrenman/Padel hemen sonrasında elektrolit dengesini yerine koymak için içilir.",
+        "glp1_benefit": "GLP-1 kaynaklı sodyum/elektrolit kaybı (natriürez) ve spor terlemesini telafi eder; tansiyon düşmesini ve krampları önler.",
     },
     {
         "id": "magnesium",
         "name": "Orzax Ocean ExtraMag Üçlü Magnezyum (Malat + Bisglisinat + Sitrat)",
+        "tier": "core",
+        "tier_label": "🟢 Temel Rutin",
         "meal": "dinner",
         "meal_title": "4. Akşam Yemeği / Gece",
         "time": "21:30 - 22:30",
@@ -823,12 +843,46 @@ SUPPLEMENT_PROTOCOL: list[dict] = [
         "timing_reason": "Gece yatmadan 1-2 saat önce bol suyla alınır.",
         "glp1_benefit": "GLP-1'in en yaygın yan etkisi olan kabızlığı sitrat formuyla önler, bisglisinat ile gece kas kramplarını engeller ve derin uyku sağlar.",
     },
+    {
+        "id": "bromelain",
+        "name": "Orzax Ocean Bromelain 500 Mg",
+        "tier": "as_needed",
+        "tier_label": "🟡 İhtiyaç Halinde",
+        "meal": "lunch",
+        "meal_title": "Öğle / Akşam (Şişkinlik Varsa)",
+        "time": "İhtiyaç Anında",
+        "dose": "1 Kapsül (Ağır proteinli öğün sırasında veya ödem hissedilince)",
+        "timing_reason": "Sadece ağır et/bakliyat öğünü sonrası mide dolgunluğu veya ödem hissedildiğinde alınır, her gün şart değildir.",
+        "glp1_benefit": "Doğal ananas enzimi; protein sindirimini hızlandırır, Wegovy mide yavaşlamasına bağlı şişkinlik ve gazı giderir.",
+    },
+    {
+        "id": "vitc",
+        "name": "Ocean C Vitamini 1000 mg + Bioflavonoidler",
+        "tier": "as_needed",
+        "tier_label": "🟡 İhtiyaç Halinde",
+        "meal": "lunch",
+        "meal_title": "Öğle Yemeği (Halsizlik / Bağışıklık Desteği)",
+        "time": "İhtiyaç Anında",
+        "dose": "1 Tablet (Yemekle birlikte)",
+        "timing_reason": "Sadece bağışıklık düşüşü, halsizlik veya grip başlangıcı hissedildiğinde yemekle alınır (yüksek asit nedeniyle rutin değildir).",
+        "glp1_benefit": "Hızlı kilo kaybında kolajen sentezini ve hücresel antioksidan korumayı artırır; multivitamin içinde baz doz zaten mevcuttur.",
+    },
 ]
 
 
 def get_supplement_protocol() -> list[dict]:
     """Return the curated clinical supplement protocol for Wegovy & muscle preservation."""
     return SUPPLEMENT_PROTOCOL
+
+
+def get_core_supplements() -> list[dict]:
+    """Return only core daily supplements (daily essential protocol)."""
+    return [s for s in SUPPLEMENT_PROTOCOL if s.get("tier") == "core"]
+
+
+def get_as_needed_supplements() -> list[dict]:
+    """Return symptomatic supplements taken only when specific needs arise."""
+    return [s for s in SUPPLEMENT_PROTOCOL if s.get("tier") == "as_needed"]
 
 
 def get_meal_supplements(meal_key: str) -> list[dict]:
@@ -865,10 +919,14 @@ def format_whatsapp_daily_plan(selected_ids: dict[str, str], day_label: str = "Y
         f"🍲 *4. AKŞAM YEMEĞİ:* {d.get('name', '')}\n"
         f"👉 _{d_ing}_\n"
         f"📊 {d.get('kcal')} kcal · {d.get('protein'):.0f}g Protein · {d.get('carbs'):.0f}g Karb · {d.get('fat'):.0f}g Yağ · {d.get('fiber'):.0f}g Lif\n\n"
-        f"💊 *GÜNLÜK TAKVİYE PROTOKOLÜ (Wegovy & Kas Desteği):*\n"
-        f"  ▫️ *Sabah (Kahvaltı Sonrası):* Ocean Multivitamin (1 tb) + Ocean D3 Sprey (2 puff / 2000 IU)\n"
-        f"  ▫️ *Öğle / Ara:* Ocean C Vitamini 1000 mg (1 tb) + Ocean Bromelain 500 mg (1 kap - sindirim & ödem)\n"
-        f"  ▫️ *Gece (Yatmadan):* Orzax ExtraMag Üçlü Magnezyum (1 tb - kabızlık önleme & kramp & derin uyku)\n\n"
+        f"💊 *GÜNLÜK TAKVİYE & ELEKTROLİT PROTOKOLÜ:*\n"
+        f"  🟢 *TEMEL GÜNLÜK RUTİN:*\n"
+        f"    ▫️ *Sabah (Kahvaltı İle):* Ocean Multivitamin (1 tb) + Ocean D3 Sprey (2 puff / 2000 IU)\n"
+        f"    ▫️ *Öğleden Sonra / Padel:* Avoya Sert İçim (1 şişe 200 ml) veya AH Sade Soda (elektrolit & sodyum)\n"
+        f"    ▫️ *Gece (Yatmadan):* Orzax ExtraMag Üçlü Magnezyum (1 tb - kabızlık & kramp önleme)\n\n"
+        f"  🟡 *SADECE İHTİYAÇ HALİNDE (Semptomatik):*\n"
+        f"    ▫️ *Mide Dolgunluğu / Şişkinlik:* Ocean Bromelain 500 mg (1 kap - ağır öğün sonrası)\n"
+        f"    ▫️ *Halsizlik / Bağışıklık Riski:* Ocean C Vitamini 1000 mg (1 tb)\n\n"
         f"💡 _Not: Wegovy mide boşalmasını geciktirdiği için porsiyonlar 4 öğüne eşit yayıldı; akşam yemeği hafif ve lif zenginidir._"
     )
     return msg
@@ -1264,6 +1322,28 @@ OFFLINE_STAPLE_FOODS: list[dict] = [
         "carbs": 23.0,
         "fiber": 2.6,
         "notes": "Potasyum ve enerji deposu.",
+    },
+    {
+        "keywords": ["avoya", "maden suyu", "mineral water"],
+        "name": "Avoya Sert İçim Sade Maden Suyu",
+        "category": "İçecek & Elektrolit",
+        "kcal": 0,
+        "protein": 0.0,
+        "fat": 0.0,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Doğal mineralli su (sodyum, bikarbonat, magnezyum). GLP-1 sodyum kaybını ve spor kramplarını önler.",
+    },
+    {
+        "keywords": ["soda", "bronwater", "sparkling water"],
+        "name": "AH Sade Soda (Bronwater Rood)",
+        "category": "İçecek & Elektrolit",
+        "kcal": 0,
+        "protein": 0.0,
+        "fat": 0.0,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Gazlı doğal maden suyu / soda; hidrasyon ve sindirim rahatlığı sağlar.",
     },
 ]
 
