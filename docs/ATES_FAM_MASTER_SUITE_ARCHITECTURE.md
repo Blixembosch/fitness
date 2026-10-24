@@ -11,11 +11,11 @@
 ## 🎯 1. Yönetici Özeti ve Problem Tanımı
 
 ### Mevcut Durum (Current State)
-* Kullanıcının 4 ayrı Streamlit projesi bulunmaktadır:
-  1. 🏋️ **ATES FAM Fitness** (Mevcut repo: `Blixembosch/fitness`)
-  2. 💰 **ATES FAM Budget** (Mevcut repo: `Blixembosch/budget`)
-  3. 📚 **Atlas Library** (Mevcut repo: `Blixembosch/atlas-library`)
-  4. 📁 **4. Özel Proje**
+* Kullanıcının 4 bağımsız projesi bulunmaktadır:
+  1. 🏋️ **Fitness** (Mevcut repo: `Blixembosch/fitness`)
+  2. 💰 **Budget** (Mevcut repo: `Blixembosch/budget`)
+  3. 📚 **Library** (Mevcut repo: `Blixembosch/atlas-library`)
+  4. ✈️ **Flight** (Canlı Uçuş & Radar Takip)
 * Streamlit Community Cloud ücretsiz katmanı **yalnızca 1 adet Private App** barındırmaya izin verir; diğer uygulamaların Public (kod ve verisi dünyaya açık) olması zorunludur.
 
 ### Hedef Durum (Target State)
@@ -27,45 +27,58 @@
 
 ## 🏗️ 2. Mimari Yapı ve Dizin Hiyerarşisi
 
-Sistem, projelerin kodlarını birbirine karıştırmadan, modüler ve bağımsız paketler halinde barındıran **Modüler Monorepo** yapısıyla kurgulanır:
+Sistem, projelerin kodlarını ve dokümantasyonlarını birbirine karıştırmadan, modüler ve bağımsız paketler halinde barındıran **Modüler Monorepo** yapısıyla kurgulanır. 
+
+> [!TIP]
+> **Ayırt Edilebilir Dokümantasyon (`README_<PROJE>.md` & `ROADMAP_<PROJE>.md`):**  
+> IDE sekmelerinde birden fazla `README.md` açıkken hangisinin hangi projeye ait olduğunu karıştırmamak için her modül kendi ismini taşıyan net, ayırt edilebilir dokümanlara sahiptir. Ana dizindeki `README.md` ise yalnızca Suite Portal genel mimarisini açıklar.
 
 ```text
 ates-fam-suite/                          # Ana Özel Depo (GitHub: Blixembosch/ates-fam-suite)
 ├── app.py                               # Master Suite Yönlendirici (Hub / Router)
 ├── requirements.txt                     # Ortak ve birleştirilmiş bağımlılıklar
-├── README.md                            # Suite düzeyinde teknik dokümantasyon
-├── ROADMAP.md                           # Suite yol haritası
+├── README.md                            # Suite düzeyinde teknik dokümantasyon & portal mimarisi
+├── ROADMAP.md                           # Suite entegrasyon yol haritası
 ├── .streamlit/
 │   ├── config.toml                      # Ortak karanlık tema ve WCAG AA/AAA CSS
-│   └── secrets.toml                     # Birleştirilmiş gizli anahtarlar
+│   └── secrets.toml                     # Birleştirilmiş gizli anahtarlar & 4 ayrı PIN hash'i
 ├── core/                                # Paylaşılan ortak çekirdek modüller
 │   ├── __init__.py
-│   ├── auth.py                          # İsteğe bağlı Aile PIN / Parola kilidi
-│   ├── layout.py                        # Üst menü, uygulama geçiş çubuğu (App Switcher)
+│   ├── auth.py                          # 4 Profilli Netflix tarzı RBAC ve PIN kilidi
+│   ├── layout.py                        # Üst menü, dinamik yetkili uygulama geçiş çubuğu (App Switcher)
 │   └── theme.py                         # Ortak CSS token'ları (--bg, --fg, --accent vb.)
 ├── apps/                                # Bağımsız Uygulama Modülleri
-│   ├── fitness/                         # 🏋️ ATES FAM Fitness
+│   ├── fitness/                         # 🏋️ Fitness
+│   │   ├── README_FITNESS.md            # Fitness klinik mimarisi, GLP-1/MPS ve test matrisi
+│   │   ├── ROADMAP_FITNESS.md           # Fitness gelişim aşamaları ve bekçi mekanizmaları
 │   │   ├── __init__.py
 │   │   ├── main.py                      # Fitness giriş noktası
-│   │   ├── lib/                         # fitness lib modülleri (workout, store, meal_planner vb.)
+│   │   ├── lib/                         # workout, store, meal_planner vb.
 │   │   └── data/                        # fitness.db
-│   ├── budget/                          # 💰 ATES FAM Budget
+│   ├── budget/                          # 💰 Budget
+│   │   ├── README_BUDGET.md             # Bütçe çift taraflı kayıt & finansal analiz mimarisi
+│   │   ├── ROADMAP_BUDGET.md            # Bütçe yol haritası & anı defteri planı
 │   │   ├── __init__.py
 │   │   ├── main.py                      # Budget giriş noktası
 │   │   ├── lib/                         # budget lib modülleri
 │   │   └── data/                        # budget.db
-│   ├── library/                         # 📚 Atlas Library
+│   ├── library/                         # 📚 Library
+│   │   ├── README_LIBRARY.md            # Kütüphane kataloglama, yaş filtreleme & sayaç mimarisi
+│   │   ├── ROADMAP_LIBRARY.md           # Kütüphane yol haritası & çocuk okuma hedefleri
 │   │   ├── __init__.py
 │   │   ├── main.py                      # Library giriş noktası
-│   │   ├── lib/
+│   │   ├── lib/                         # library lib modülleri
 │   │   └── data/                        # library.db
-│   └── atlas_flight/                    # ✈️ Atlas Flight (Canlı Uçuş & Radar Takip)
+│   └── flight/                          # ✈️ Flight (Canlı Uçuş & Radar Takip)
+│       ├── README_FLIGHT.md             # Canlı radar, ADS-B/OpenSky API ve harita mimarisi
+│       ├── ROADMAP_FLIGHT.md            # Flight yol haritası
 │       ├── __init__.py
-│       ├── main.py
-│       └── lib/
+│       ├── main.py                      # Flight giriş noktası
+│       ├── lib/                         # flight lib modülleri
+│       └── data/                        # flight.db
 └── tests/                               # Suite Testleri
     ├── test_hub_router.py               # Uygulama geçiş ve yönlendirme testleri
-    ├── test_rbac_auth.py                # Rol tabanlı yetki ve profil testleri
+    ├── test_rbac_auth.py                # Rol tabanlı yetki, PIN ve profil sızdırmazlık testleri
     ├── test_state_isolation.py          # State çakışması izolasyon testleri
     └── ...
 ```
@@ -81,8 +94,8 @@ Kullanıcının en kritik sorusu: **"Repoda bunları ayrı branch'ler altında m
 * **Fonksiyonların Karışmaması Güvencesi (Python Package Isolation):** Kodlar `main` branch'inde yaşar ancak **tamamen izole Python paketleri (`apps/*`)** içine hapsedilir:
   * Fitness fonksiyonları: `apps.fitness.lib.*`
   * Budget fonksiyonları: `apps.budget.lib.*`
-  * Atlas Library fonksiyonları: `apps.library.lib.*`
-  * Atlas Flight fonksiyonları: `apps.atlas_flight.lib.*`
+  * Library fonksiyonları: `apps.library.lib.*`
+  * Flight fonksiyonları: `apps.flight.lib.*`
 * Python'ın modül sistemi gereği, bir paketin içindeki fonksiyon diğer paketi **kesinlikle göremez, üzerine yazamaz veya etkileyemez**. Birbirinden tamamen habersiz, bağımsız 4 ada gibi çalışırlar.
 * *(İsteğe Bağlı Git Submodule Opsiyonu):* Eğer kaynak kodların da GitHub'da 4 ayrı repoda kalması istenirse; 4 bağımsız özel repo tutulur ve `ates-fam-suite` bu 4 depoyu **Git Submodule** olarak `apps/` altına çeker. Böylece kod depoları da %100 ayrı kalır.
 
@@ -91,15 +104,15 @@ Her uygulamanın veritabanı dosyası ve SQLite bağlantı havuzu tamamen ayrıd
 * `apps/fitness/data/fitness.db`
 * `apps/budget/data/budget.db`
 * `apps/library/data/library.db`
-* `apps/atlas_flight/data/atlas_flight.db`
-Fitness uygulaması hiçbir zaman `budget.db` bağlantısını açmaz; tablolar, sütunlar ve kayıtlar %100 izoledir.
+* `apps/flight/data/flight.db`
+Fitness uygulaması hiçbir zaman `budget.db` veya `library.db` bağlantısını açmaz; tablolar, sütunlar ve kayıtlar %100 izoledir.
 
 ### C. GitHub Bulut Kalıcılığı: 4 Bağımsız Veri Branch'i (Data Branches)
 Verilerin bulut yedeğinde birbirine karışmaması için **GitHub'da 4 ayrı veri branch'i** kullanılır:
 * `data-fitness` branch'i $\rightarrow$ Yalnızca `fitness.sql` dökümünü tutar.
 * `data-budget` branch'i $\rightarrow$ Yalnızca `budget.sql` dökümünü tutar.
 * `data-library` branch'i $\rightarrow$ Yalnızca `library.sql` dökümünü tutar.
-* `data-flight` branch'i $\rightarrow$ Yalnızca `atlas_flight.sql` dökümünü tutar.
+* `data-flight` branch'i $\rightarrow$ Yalnızca `flight.sql` dökümünü tutar.
 
 Uygulamalar GitHub REST API ile veri kaydederken yalnızca kendi veri branch'ine commit atar. Bütçe verisinin Fitness branch'ine gitmesi matematiksel olarak imkansızdır.
 
@@ -255,8 +268,8 @@ Argon kotası açıldığında takip edilecek 6 aşamalı uygulama planı:
 1. **Aşama 1 — Depo Kurulumu (Scaffolding):**
    * GitHub üzerinde `Blixembosch/ates-fam-suite` adında yeni bir **Private** depo oluşturulur.
    * Temel dizin yapısı (`core/`, `apps/`, `.streamlit/`) açılır.
-2. **Aşama 2 — Kodların Taşınması:**
-   * `ATES_FAM_Fitness`, `ATES_FAM_Budget`, `Atlas Library` ve `Flight` kodları `apps/` altına modüler olarak kopyalanır (`apps/fitness`, `apps/budget`, `apps/library`, `apps/flight`).
+2. **Aşama 2 — Kodların ve Dokümantasyonun Taşınması:**
+   * 4 projenin (**Fitness**, **Budget**, **Library** ve **Flight**) kaynak kodları ve bağımsız dokümantasyonları (`README_*.md`, `ROADMAP_*.md`) `apps/` altına modüler olarak taşınır (`apps/fitness`, `apps/budget`, `apps/library`, `apps/flight`).
 3. **Aşama 3 — 4 Profilli Rol Tabanlı Yetkilendirme & Profil Motoru (`core/auth.py`):**
    * Anıl, Berna, Atlas ve Alina için 4 ayrı PIN doğrulama fonksiyonu kodlanır.
    * Atlas ve Alina için Bütçe ve Fitness filtreleme ile Kütüphane içi yaş filtreleme/kişisel sayaç motoru kurulur.
@@ -285,7 +298,7 @@ Merhaba! Depomuzdaki "docs/ATES_FAM_MASTER_SUITE_ARCHITECTURE.md" dosyasında t�
    - "Atlas": Kendi çocuk PIN'i ile giriş. Sadece Library (Atlas yaş grubuna ait kitaplar & kişisel okuma sayaçları) ve Flight (Canlı radar) görünür olacak. Budget ve Fitness kesinlikle görünmeyecek ve URL manipülasyonuna karşı engellenecek.
    - "Alina": Kendi çocuk PIN'i ile giriş. Sadece Library (Alina 0-3 yaş bebek kitapları & kişisel okuma sayaçları) ve Flight (Canlı radar) görünür olacak. Budget ve Fitness engelli olacak.
    - Library içinde ebeveyn yönetici işlemleri için Anne/Baba PIN'i gerekecek.
-3. apps/fitness, apps/budget, apps/library ve apps/flight şeklinde modüler monorepo kurmak.
+3. apps/fitness, apps/budget, apps/library ve apps/flight şeklinde modüler monorepo kurmak; her projenin kendi README_<PROJE>.md ve ROADMAP_<PROJE>.md dokümanını ayırt edilebilir isimlerle modül dizininde bağımsız tutmak.
 4. Çift katmanlı SQLite ve GitHub bağımsız Veri Branch'leri (data-fitness, data-budget, data-library, data-flight) ile veri kalıcılığını %100 izole korumak.
 5. Şartnamedeki 6 aşamalı geçiş yol haritasını sırasıyla ve testleri kırılmadan hayata geçirmeni rica ediyorum.
 ```
