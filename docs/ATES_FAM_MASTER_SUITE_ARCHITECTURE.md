@@ -134,8 +134,8 @@ Streamlit'in global `st.session_state` sözlüğü ortak paylaşıldığı için
 Kullanıcının tanımladığı aile yapısı ve yetki matrisi:
 * **Anıl (Admin):** Tüm 4 projeye ve tüm alt sayfalara tam yönetici erişimi.
 * **Berna (Eş / Anne):** Library ve Flight'a tam erişim; Fitness tarafında **"Menü & Sağlık"** (4 Öğünlü Menü, Alışveriş Listesi, Takviye Takibi) odaklı arayüze erişim; Budget tarafında ise hassas/ayrıntılı hesaplar gizlenerek yalnızca **"Financial Overview"** (Finansal Genel Bakış) ve **"Atlas'ın Anı Defteri"** (Atlas' Memory Book) modüllerine erişim.
-* **Atlas (Junior):** Yalnızca Library (Okuyucu modu) ve Flight (Canlı takip). Fitness ve Budget kesinlikle görünmez ve engelli.
-* **Alina (Junior — Gelecek Üye):** Henüz doğmadı ancak profil altyapısı şimdiden hazır! Atlas ile aynı kurallara tabi (Library okuyucu + Flight tam erişim; Fitness ve Budget engelli).
+* **Atlas (Junior):** Library (Okuyucu modu), Flight (Canlı takip) ve **Atlas'ın Anı Defteri'ne yalnızca okuyucu (salt okunur / read-only)** olarak erişim. Tüm finansal veriler (gelir, gider, hesaplar, bütçe) ve Fitness kesinlikle görünmez ve engellidir.
+* **Alina (Junior — Gelecek Üye):** Henüz doğmadı ancak profil altyapısı şimdiden hazır! (Library okuyucu + Flight tam erişim; Fitness ve Budget engelli).
 
 ### 1. Aile Erişim Yetki Matrisi (Family Authorization Matrix)
 
@@ -143,7 +143,7 @@ Kullanıcının tanımladığı aile yapısı ve yetki matrisi:
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | 👑 **Anıl (Admin / Baba)** | Ayrı Baba PIN (`****`) | ✅ **Tam Erişim** (Tüm Sayfalar) | ✅ **Tam Erişim** (Tüm Hesaplar, İşlemler, Ayarlar) | ✅ **Yönetici Modu** (Tüm Yaşlar, Ekle/Sil/Düzenle) | ✅ **Tam Erişim** |
 | 👩 **Berna (Eş / Anne)** | Ayrı Anne PIN (`****`) | 🥗 **Menü & Sağlık** (Beslenme & Takviye) | 📊 **Kısıtlı Erişim** (Yalnızca Financial Overview & Atlas'ın Anı Defteri) | ✅ **Ebeveyn Modu** (Tüm Yaşlar, Okuma & Düzenleme) | ✅ **Tam Erişim** |
-| 🧒 **Atlas (Junior / Çocuk)** | Ayrı Atlas PIN (`****`) | ❌ **Görünmez & Engelli** | ❌ **Görünmez & Engelli** | 📖 **Atlas Yaş Grubu** (Kişisel Okuma Sayacı & Kitapları) | ✅ **Tam Erişim** |
+| 🧒 **Atlas (Junior / Çocuk)** | Ayrı Atlas PIN (`****`) | ❌ **Görünmez & Engelli** | 📔 **Salt Okunur Anı Defteri** *(Tüm finansal hesap/sayılar engelli; yalnızca kendi anı defterini okuyucu olarak görebilir)* | 📖 **Atlas Yaş Grubu** (Kişisel Okuma Sayacı & Kitapları) | ✅ **Tam Erişim** |
 | 👶 **Alina (Junior / Bebek)** | Ayrı Alina PIN (`****`) | ❌ **Görünmez & Engelli** | ❌ **Görünmez & Engelli** | 📖 **Alina Bebek/Okul Öncesi** (Kişisel Okuma Sayacı) | ✅ **Tam Erişim** |
 
 > [!IMPORTANT]
@@ -151,11 +151,12 @@ Kullanıcının tanımladığı aile yapısı ve yetki matrisi:
 
 ### 2. Router Düzeyinde Güvenlik ve URL Manipülasyon Engeli
 Atlas veya Alina profili aktifken:
-* Menü çubuğunda `[ 💰 Bütçe ]` ve `[ 🏋️ Fitness ]` butonları arayüzde **kesinlikle render edilmez**.
-* Çocuklar tarayıcı adres satırına elle `?app=budget` veya `?app=fitness` yazsa bile yönlendirici bunu anında yakalar:
+* Menü çubuğunda Fitness ve Bütçe'nin finansal bölümleri arayüzde **kesinlikle render edilmez**.
+* Atlas'ın menüsünde doğrudan çocuk dostu `[ 📔 Anı Defterim ]` sekmesi yer alır.
+* Çocuklar tarayıcı adres satırına elle `?app=fitness` veya `?app=budget` yazsa bile yönlendirici bunu anında yakalar:
   ```python
   ALLOWED_APPS = {
-      "atlas": ["library", "flight"],
+      "atlas": ["library", "flight", "memories"],
       "alina": ["library", "flight"],
       "berna": ["fitness", "budget", "library", "flight"],
       "anil": ["fitness", "budget", "library", "flight"],
@@ -204,7 +205,18 @@ Kütüphane veritabanında her kitap için `age_group` etiketi (`"atlas"`, `"ali
       budget_app.run_full_mode()
   ```
 
-### 6. PIN Hashleme & Secrets Güvenliği
+### 6. Atlas İçin "Atlas'ın Anı Defteri" Salt Okunur (Read-Only) Modu
+* Atlas profiliyle giriş yapıldığında, menü çubuğunda çocuk dostu `[ 📔 Anı Defterim ]` sekmesi yer alır.
+* Bu sekme tıklandığında Budget altındaki Anı Defteri modülünü (`memories`) çağırır:
+  ```python
+  if profile == "atlas":
+      # Yalnızca Atlas'ın anı defterini salt okunur (read-only) modda render et
+      budget_app.run_memories_readonly_mode()
+  ```
+* **%100 Finansal İzolasyon:** Gelir, gider, banka bakiyesi, bütçe grafikleri veya işlem girişleri bu görünümde asla sorgulanmaz ve render edilmez. Atlas için finansal dünya tamamen görünmezdir.
+* **Salt Okunur (Read-Only) Güvencesi:** Atlas hatıra fotoğraflarını, özel anı metinlerini ve büyüme kilometre taşlarını dijital albüm gibi okuyabilir. Düzenleme, silme veya yeni anı ekleme butonları gizlenir; değişiklik için ebeveyn PIN onayı gerekir.
+
+### 7. PIN Hashleme & Secrets Güvenliği
 Tüm PIN kodları SHA-256 hash formatında `.streamlit/secrets.toml` dosyasında saklanır:
 ```toml
 [auth.pins]
@@ -231,8 +243,9 @@ theme.apply_theme()
 profile = auth.render_profile_modal()
 
 # 2. Yetkiye Göre Dinamik Menü Çubuğu
-# Atlas / Alina -> [📚 Kütüphanem] [✈️ Flight]
-# Berna -> [🥗 Menü & Sağlık] [💰 Bütçe] [📚 Kütüphane] [✈️ Flight]
+# Atlas -> [📚 Kütüphanem] [✈️ Flight] [📔 Anı Defterim]
+# Alina -> [📚 Masallarım] [✈️ Flight]
+# Berna -> [🥗 Menü & Sağlık] [💰 Bütçe (Özet & Anı)] [📚 Kütüphane] [✈️ Flight]
 # Anıl -> [🏋️ Fitness] [💰 Bütçe] [📚 Kütüphane] [✈️ Flight]
 selected_app = layout.render_app_switcher(profile)
 
@@ -243,9 +256,12 @@ if selected_app == "fitness" and auth.can_access(profile, "fitness"):
         fitness_app.run_nutrition_health_mode()
     else:
         fitness_app.run_full_mode()
-elif selected_app == "budget" and auth.can_access(profile, "budget"):
+elif selected_app in ["budget", "memories"] and auth.can_access(profile, selected_app):
     from apps.budget import main as budget_app
-    if profile == "berna":
+    if profile == "atlas":
+        # Atlas için yalnızca salt okunur anı defteri (finansal veriler sıfır)
+        budget_app.run_memories_readonly_mode()
+    elif profile == "berna":
         # Berna için yalnızca Financial Overview ve Atlas'ın Anı Defteri modülleri
         budget_app.run_overview_and_memories_mode()
     else:
@@ -295,7 +311,7 @@ Merhaba! Depomuzdaki "docs/ATES_FAM_MASTER_SUITE_ARCHITECTURE.md" dosyasında t�
 2. Netflix tarzı 4 aile profili ve Ayrı PIN'li Rol Tabanlı Yetkilendirme (RBAC) kurmak:
    - "Anıl": Kendi PIN'i ile tüm 4 uygulamaya ve tüm modüllere tam yönetici yetkili.
    - "Berna": Kendi PIN'i ile Library ve Flight'a tam erişim; Fitness'ta yalnızca "Menü & Sağlık" (beslenme/takviye) modülüne erişim; Budget tarafında ise yalnızca "Financial Overview" ve "Atlas'ın Anı Defteri" modüllerine erişim.
-   - "Atlas": Kendi çocuk PIN'i ile giriş. Sadece Library (Atlas yaş grubuna ait kitaplar & kişisel okuma sayaçları) ve Flight (Canlı radar) görünür olacak. Budget ve Fitness kesinlikle görünmeyecek ve URL manipülasyonuna karşı engellenecek.
+   - "Atlas": Kendi çocuk PIN'i ile giriş. Sadece Library (Atlas yaş grubuna ait kitaplar & kişisel okuma sayaçları), Flight (Canlı radar) ve Atlas'ın Anı Defteri (yalnızca okuyucu / read-only) görünür olacak. Tüm finansal hesaplar/sayılar ve Fitness kesinlikle görünmeyecek ve URL manipülasyonuna karşı engellenecek.
    - "Alina": Kendi çocuk PIN'i ile giriş. Sadece Library (Alina 0-3 yaş bebek kitapları & kişisel okuma sayaçları) ve Flight (Canlı radar) görünür olacak. Budget ve Fitness engelli olacak.
    - Library içinde ebeveyn yönetici işlemleri için Anne/Baba PIN'i gerekecek.
 3. apps/fitness, apps/budget, apps/library ve apps/flight şeklinde modüler monorepo kurmak; her projenin kendi README_<PROJE>.md ve ROADMAP_<PROJE>.md dokümanını ayırt edilebilir isimlerle modül dizininde bağımsız tutmak.
