@@ -2217,11 +2217,11 @@ def _render_meal_planner():
 
 
 def _render_weekly_grocery():
-    st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🛒 7 Günlük Dengeli Menü & Albert Heijn Alışveriş Listesi</div>", unsafe_allow_html=True)
+    st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🛒 7 Günlük Dengeli Menü & Alışveriş Listesi</div>", unsafe_allow_html=True)
 
     tab_w_plan, tab_w_groc, tab_w_lib = st.tabs([
         "🗓 7 Günlük Örnek Menü Planı",
-        "🛍 Albert Heijn Alışveriş Listesi",
+        "🛍 Alışveriş Listesi",
         "📦 Evdeki Ürünler & Kalori Kütüphanesi",
     ])
 
@@ -2311,11 +2311,80 @@ def _render_weekly_grocery():
             })
         st.dataframe(pd.DataFrame(prod_rows), use_container_width=True, hide_index=True)
 
-        with st.expander("➕ Kütüphaneye Yeni Ürün / Besin Ekle", expanded=False):
+        with st.container(border=True):
+            st.markdown(
+                "<div class='eyebrow' style='margin:0 0 4px'>⚡ Akıllı Besin Bulucu & Otomatik Makro Hesaplayıcı</div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                "<div style='font-size:12.5px;color:var(--muted);margin-bottom:10px'>"
+                "Sadece ürün adını (örn. <i>AH Somon, Skyr, Tavuk Göğsü, Kıyma, Havermout, Unox Çorba...</i>) "
+                "ve porsiyon gramajını girin; değerler (protein, yağ, karb, lif, kalori) otomatik hesaplanır."
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            cq1, cq2, cq3 = st.columns([3, 1.2, 1.5])
+            smart_q = cq1.text_input("Ürün Adı", placeholder="örn. AH Gerookte Zalm, Skyr, Tavuk...", key="smart_lookup_q")
+            smart_g = cq2.number_input("Gramaj (g)", min_value=5, max_value=2000, value=100, step=10, key="smart_lookup_g")
+            btn_search = cq3.button("🔍 Besini Bul & Hesapla", type="primary", key="btn_do_smart_lookup")
+
+            if btn_search:
+                if smart_q.strip():
+                    found = meal_planner.lookup_food_macros(smart_q.strip(), grams=float(smart_g))
+                    if found:
+                        st.session_state["_smart_lookup_hit"] = found
+                    else:
+                        st.session_state["_smart_lookup_hit"] = None
+                        st.warning(f"'{smart_q.strip()}' için otomatik veri bulunamadı. Aşağıdaki formdan manuel ekleyebilirsiniz.")
+                else:
+                    st.info("Lütfen aramak istediğiniz ürünün adını girin.")
+
+            hit = st.session_state.get("_smart_lookup_hit")
+            if hit:
+                p100 = hit.get("per_100g", {})
+                st.markdown(
+                    f"<div style='background:rgba(56,152,255,0.08);border-left:3px solid #3898ff;padding:8px 12px;border-radius:6px;margin:10px 0'>"
+                    f"<b>✅ {hit['name']}</b> ({hit['source']})<br/>"
+                    f"<span style='font-size:11.5px;color:var(--muted)'>100g Referansı: {p100.get('kcal',0)} kcal · {p100.get('protein',0)}g Protein · {p100.get('fat',0)}g Yağ · {p100.get('carbs',0)}g Karb · {p100.get('fiber',0)}g Lif</span>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(f"**👉 {int(hit['grams'])}g Porsiyonunuz İçin Hesaplanan Makrolar:**")
+                sm1, sm2, sm3, sm4, sm5 = st.columns(5)
+                sm1.metric("🔥 Kalori", f"{hit['kcal']} kcal")
+                sm2.metric("🥩 Protein", f"{hit['protein']}g")
+                sm3.metric("🥑 Yağ", f"{hit['fat']}g")
+                sm4.metric("🍚 Karb", f"{hit['carbs']}g")
+                sm5.metric("🥦 Lif", f"{hit['fiber']}g")
+
+                ca1, ca2 = st.columns([3, 1])
+                if ca1.button(f"💾 {int(hit['grams'])}g Porsiyonu Kütüphaneye Ekle", type="primary", key="btn_save_smart_hit"):
+                    new_item = {
+                        "name": hit["name"],
+                        "category": hit.get("category", "Genel"),
+                        "portion": f"{int(hit['grams'])}g",
+                        "kcal": hit["kcal"],
+                        "protein": hit["protein"],
+                        "fat": hit["fat"],
+                        "carbs": hit["carbs"],
+                        "fiber": hit["fiber"],
+                        "notes": hit.get("notes") or f"{hit['source']} ile otomatik hesaplandı",
+                    }
+                    if "custom_products" not in S or not isinstance(S["custom_products"], list):
+                        S["custom_products"] = []
+                    S["custom_products"].append(new_item)
+                    _save()
+                    st.session_state["_smart_lookup_hit"] = None
+                    st.success(f"'{hit['name']}' ({int(hit['grams'])}g) kütüphaneye başarıyla eklendi!")
+                    st.rerun()
+                if ca2.button("İptal", key="btn_cancel_smart_hit"):
+                    st.session_state["_smart_lookup_hit"] = None
+                    st.rerun()
+
+        with st.expander("🛠 Manuel Olarak Yeni Ürün Ekle (Değerleri Elle Girmek İsterseniz)", expanded=False):
             st.markdown(
                 "<div style='font-size:12.5px;color:var(--muted);margin-bottom:8px'>"
-                "Marketten veya dışarıdan aldığınız yeni bir gıdayı doğrudan buradan kaydedebilirsiniz. "
-                "Eklenen ürünler yerel veritabanına ve buluta anında kaydedilir."
+                "Marketten veya dışarıdan aldığınız yeni bir gıdanın değerlerini doğrudan elle yazarak kaydedebilirsiniz."
                 "</div>",
                 unsafe_allow_html=True,
             )
@@ -2382,7 +2451,7 @@ def page_nutrition():
     tab_log, tab_plan, tab_grocery = st.tabs([
         "📊 Günlük Takip & Makrolar",
         "🥗 4 Öğünlü Akıllı Menü",
-        "🛒 7 Günlük Menü & Alışveriş Listesi (Albert Heijn)",
+        "🛒 7 Günlük Menü & Alışveriş Listesi",
     ])
 
     with tab_log:

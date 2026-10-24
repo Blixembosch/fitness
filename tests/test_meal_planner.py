@@ -118,3 +118,31 @@ def test_get_home_products_with_custom():
     assert all_prods[-1]["name"] == "AH Zalmfilet"
 
 
+def test_lookup_food_macros():
+    # 1. 100g lookup
+    res_100 = mp.lookup_food_macros("somon", grams=100)
+    assert res_100 is not None
+    assert "Somon" in res_100["name"]
+    assert res_100["kcal"] == 208
+    assert res_100["protein"] == 20.5
+
+    # 2. 150g scaled lookup
+    res_150 = mp.lookup_food_macros("somon", grams=150)
+    assert res_150 is not None
+    assert res_150["kcal"] == int(round(208 * 1.5))
+    assert res_150["protein"] == round(20.5 * 1.5, 1)
+
+    # 3. Skyr and tavuk
+    res_skyr = mp.lookup_food_macros("skyr", grams=200)
+    assert res_skyr is not None
+    assert res_skyr["protein"] == round(11.0 * 2.0, 1)
+
+    res_tavuk = mp.lookup_food_macros("tavuk göğsü", grams=120)
+    assert res_tavuk is not None
+    assert res_tavuk["protein"] == round(23.0 * 1.2, 1)
+
+    # 4. Empty/whitespace
+    assert mp.lookup_food_macros("") is None
+    assert mp.lookup_food_macros("   ") is None
+
+

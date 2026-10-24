@@ -8,6 +8,12 @@ Tailored for Wegovy (GLP-1) protocol + muscle preservation:
 - Generates customizable daily menus, WhatsApp messages for spouses, 7-day plans, and categorized
   Albert Heijn / Dutch grocery shopping lists.
 """
+from __future__ import annotations
+import json
+import ssl
+import urllib.parse
+import urllib.request
+
 HOME_PRODUCT_LIBRARY: list[dict] = [
     {
         "name": "AH Magere Kwark (Low-fat quark)",
@@ -857,3 +863,436 @@ def format_whatsapp_grocery_list(grocery_dict: dict[str, list[str]]) -> str:
         lines.append("")
     lines.append("💡 _Not: Evdeki protein tozları, kwark, fıstık ezmesi ve protein pudingleri listeye göre kontrol edildi._")
     return "\n".join(lines)
+
+
+OFFLINE_STAPLE_FOODS: list[dict] = [
+    {
+        "keywords": ["somon", "zalm", "salmon"],
+        "name": "Tütsülenmiş Somon (Gerookte Zalm)",
+        "category": "Et & Tavuk & Balık",
+        "kcal": 208,
+        "protein": 20.5,
+        "fat": 13.5,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Zengin Omega-3 EPA/DHA ve yüksek kaliteli protein.",
+    },
+    {
+        "keywords": ["tavuk", "kipfilet", "chicken"],
+        "name": "Tavuk Göğsü (Kipfilet)",
+        "category": "Et & Tavuk & Balık",
+        "kcal": 110,
+        "protein": 23.0,
+        "fat": 1.5,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Yağsız saf protein kaynağı.",
+    },
+    {
+        "keywords": ["hindi", "kalkoen", "turkey"],
+        "name": "Hindi Göğsü (Kalkoenfilet)",
+        "category": "Et & Tavuk & Balık",
+        "kcal": 105,
+        "protein": 24.0,
+        "fat": 1.0,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Ultra yağsız beyaz et.",
+    },
+    {
+        "keywords": ["kıyma", "gehakt", "rundergehakt", "mince"],
+        "name": "Yağsız Dana Kıyma (Magere Rundergehakt ≤5%)",
+        "category": "Et & Tavuk & Balık",
+        "kcal": 135,
+        "protein": 21.0,
+        "fat": 5.0,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Yüksek demir ve B12 içeren yağsız kırmızı et.",
+    },
+    {
+        "keywords": ["ton balığı", "tonijn", "tuna"],
+        "name": "Ton Balığı (Suda / In Water)",
+        "category": "Et & Tavuk & Balık",
+        "kcal": 115,
+        "protein": 26.0,
+        "fat": 1.0,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Pratik konserve saf protein.",
+    },
+    {
+        "keywords": ["forel", "alabalık", "trout"],
+        "name": "Tütsülenmiş Alabalık (Gerookte Forel)",
+        "category": "Et & Tavuk & Balık",
+        "kcal": 140,
+        "protein": 22.0,
+        "fat": 5.5,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Hafif ve lezzetli balık alternatifi.",
+    },
+    {
+        "keywords": ["garnalen", "karides", "shrimp"],
+        "name": "Karides (Garnalen)",
+        "category": "Et & Tavuk & Balık",
+        "kcal": 85,
+        "protein": 18.0,
+        "fat": 1.0,
+        "carbs": 0.5,
+        "fiber": 0.0,
+        "notes": "Düşük kalorili, yüksek proteinli deniz mahsulü.",
+    },
+    {
+        "keywords": ["skyr"],
+        "name": "Skyr (İzlanda Yoğurdu Natural)",
+        "category": "Süt & Yoğurt",
+        "kcal": 63,
+        "protein": 11.0,
+        "fat": 0.2,
+        "carbs": 4.0,
+        "fiber": 0.0,
+        "notes": "Yüksek kazein ve kalsiyum, neredeyse sıfır yağ.",
+    },
+    {
+        "keywords": ["kwark", "quark"],
+        "name": "AH Magere Kwark (Low-fat quark)",
+        "category": "Süt & Yoğurt",
+        "kcal": 52,
+        "protein": 8.5,
+        "fat": 0.2,
+        "carbs": 4.0,
+        "fiber": 0.0,
+        "notes": "Altın standart protein bazı.",
+    },
+    {
+        "keywords": ["cottage", "hüttenkäse", "huttenkase", "lor"],
+        "name": "AH Cottage Cheese Light (Hüttenkäse)",
+        "category": "Peynir & Şarküteri",
+        "kcal": 69,
+        "protein": 11.0,
+        "fat": 1.7,
+        "carbs": 2.5,
+        "fiber": 0.0,
+        "notes": "Doyurucu kazein proteini.",
+    },
+    {
+        "keywords": ["yumurta akı", "eiwit", "egg white"],
+        "name": "Sıvı Yumurta Akı (Vloeibaar Eiwit)",
+        "category": "Yumurta & Kahvaltılık",
+        "kcal": 50,
+        "protein": 11.0,
+        "fat": 0.2,
+        "carbs": 0.7,
+        "fiber": 0.0,
+        "notes": "Sıfır yağlı hacimli omlet bazı.",
+    },
+    {
+        "keywords": ["yumurta", "ei", "egg"],
+        "name": "Organik Bütün Yumurta (AH Biologisch Ei)",
+        "category": "Yumurta & Kahvaltılık",
+        "kcal": 143,
+        "protein": 12.5,
+        "fat": 10.0,
+        "carbs": 0.7,
+        "fiber": 0.0,
+        "notes": "Kolin ve tam biyoyararlanımlı protein.",
+    },
+    {
+        "keywords": ["havermout", "yulaf", "oats"],
+        "name": "Tam Yulaf Ezmesi (Havermout)",
+        "category": "Tahıl & Karbonhidrat",
+        "kcal": 370,
+        "protein": 13.0,
+        "fat": 7.0,
+        "carbs": 59.0,
+        "fiber": 10.0,
+        "notes": "Beta-glukan lifiyle uzun süreli tokluk.",
+    },
+    {
+        "keywords": ["volkoren", "kepekli ekmek", "esmer ekmek"],
+        "name": "Tam Buğday Ekmeği (Volkoren Brood)",
+        "category": "Tahıl & Karbonhidrat",
+        "kcal": 230,
+        "protein": 9.0,
+        "fat": 2.5,
+        "carbs": 40.0,
+        "fiber": 6.5,
+        "notes": "Yavaş sindirilen kompleks karbonhidrat.",
+    },
+    {
+        "keywords": ["rijst", "pirinç", "rice"],
+        "name": "Esmer / Basmati Pirinç (Zilvervliesrijst)",
+        "category": "Tahıl & Karbonhidrat",
+        "kcal": 350,
+        "protein": 8.0,
+        "fat": 1.5,
+        "carbs": 74.0,
+        "fiber": 3.0,
+        "notes": "Temiz glikojen antrenman yakıtı.",
+    },
+    {
+        "keywords": ["tatlı patates", "zoete aardappel", "sweet potato"],
+        "name": "Tatlı Patates (Zoete Aardappel)",
+        "category": "Sebze & Meyve",
+        "kcal": 86,
+        "protein": 1.6,
+        "fat": 0.1,
+        "carbs": 20.0,
+        "fiber": 3.0,
+        "notes": "Düşük glisemik indeks ve A vitamini.",
+    },
+    {
+        "keywords": ["patates", "aardappel", "potato"],
+        "name": "Patates (Haşlanmış)",
+        "category": "Sebze & Meyve",
+        "kcal": 77,
+        "protein": 2.0,
+        "fat": 0.1,
+        "carbs": 17.0,
+        "fiber": 2.2,
+        "notes": "Yüksek tokluk indeksi.",
+    },
+    {
+        "keywords": ["linzen", "mercimek", "lentil"],
+        "name": "Mercimek (Linzen)",
+        "category": "Bakliyat",
+        "kcal": 330,
+        "protein": 24.0,
+        "fat": 1.5,
+        "carbs": 48.0,
+        "fiber": 11.0,
+        "notes": "Bitkisel protein ve prebiyotik lif deposu.",
+    },
+    {
+        "keywords": ["kikkererwten", "nohut", "chickpea"],
+        "name": "Nohut (Kikkererwten)",
+        "category": "Bakliyat",
+        "kcal": 130,
+        "protein": 8.5,
+        "fat": 2.5,
+        "carbs": 17.0,
+        "fiber": 5.0,
+        "notes": "Sindirim dostu lif ve bitkisel protein.",
+    },
+    {
+        "keywords": ["doperwten", "bezelye", "peas"],
+        "name": "Taze Bezelye (Doperwten)",
+        "category": "Bakliyat",
+        "kcal": 81,
+        "protein": 5.4,
+        "fat": 0.4,
+        "carbs": 14.0,
+        "fiber": 5.5,
+        "notes": "Mikrobesin ve lif zengini.",
+    },
+    {
+        "keywords": ["broccoli", "brokoli"],
+        "name": "Taze Brokoli (Broccoli)",
+        "category": "Sebze & Meyve",
+        "kcal": 34,
+        "protein": 2.8,
+        "fat": 0.4,
+        "carbs": 7.0,
+        "fiber": 2.6,
+        "notes": "Sülforafan ve lif deposu.",
+    },
+    {
+        "keywords": ["spinazie", "ıspanak", "ispanak", "spinach"],
+        "name": "Taze Ispanak (Spinazie)",
+        "category": "Sebze & Meyve",
+        "kcal": 23,
+        "protein": 2.9,
+        "fat": 0.4,
+        "carbs": 3.6,
+        "fiber": 2.2,
+        "notes": "Demir ve magnezyum zengini.",
+    },
+    {
+        "keywords": ["avocado", "avokado"],
+        "name": "Taze Avokado",
+        "category": "Fıstık Ezmesi & Kuruyemiş",
+        "kcal": 160,
+        "protein": 2.0,
+        "fat": 15.0,
+        "carbs": 9.0,
+        "fiber": 6.7,
+        "notes": "Kalp dostu tekli doymamış yağ asitleri.",
+    },
+    {
+        "keywords": ["pindakaas", "fıstık ezmesi", "peanut butter"],
+        "name": "AH Terra 100% Fıstık Ezmesi (Pindakaas)",
+        "category": "Fıstık Ezmesi & Kuruyemiş",
+        "kcal": 615,
+        "protein": 26.0,
+        "fat": 50.0,
+        "carbs": 11.0,
+        "fiber": 7.0,
+        "notes": "Katkısız %100 yer fıstığı.",
+    },
+    {
+        "keywords": ["amandelen", "badem", "almond"],
+        "name": "Çiğ Badem (Amandelen)",
+        "category": "Fıstık Ezmesi & Kuruyemiş",
+        "kcal": 579,
+        "protein": 21.0,
+        "fat": 50.0,
+        "carbs": 22.0,
+        "fiber": 12.5,
+        "notes": "E vitamini ve sağlıklı yağlar.",
+    },
+    {
+        "keywords": ["walnoten", "ceviz", "walnut"],
+        "name": "Ceviz İçi (Walnoten)",
+        "category": "Fıstık Ezmesi & Kuruyemiş",
+        "kcal": 654,
+        "protein": 15.0,
+        "fat": 65.0,
+        "carbs": 14.0,
+        "fiber": 6.7,
+        "notes": "Bitkisel Omega-3 ALA kaynağı.",
+    },
+    {
+        "keywords": ["olijfolie", "zeytinyağı", "olive oil"],
+        "name": "Sızma Zeytinyağı (Extra Vierge Olijfolie)",
+        "category": "Diğer",
+        "kcal": 884,
+        "protein": 0.0,
+        "fat": 100.0,
+        "carbs": 0.0,
+        "fiber": 0.0,
+        "notes": "Antioksidan polifenoller.",
+    },
+    {
+        "keywords": ["whey", "protein tozu"],
+        "name": "Whey Protein Tozu (Standart)",
+        "category": "Protein Tozu",
+        "kcal": 400,
+        "protein": 80.0,
+        "fat": 6.0,
+        "carbs": 6.0,
+        "fiber": 1.5,
+        "notes": "Hızlı emilen saf protein.",
+    },
+    {
+        "keywords": ["tofu"],
+        "name": "Sert Tofu (Firm Tofu)",
+        "category": "Bakliyat",
+        "kcal": 144,
+        "protein": 16.0,
+        "fat": 8.5,
+        "carbs": 2.5,
+        "fiber": 2.0,
+        "notes": "Bitkisel tam protein kaynağı.",
+    },
+    {
+        "keywords": ["banaan", "muz", "banana"],
+        "name": "Taze Muz (Banaan)",
+        "category": "Sebze & Meyve",
+        "kcal": 89,
+        "protein": 1.1,
+        "fat": 0.3,
+        "carbs": 23.0,
+        "fiber": 2.6,
+        "notes": "Potasyum ve enerji deposu.",
+    },
+]
+
+
+def query_open_food_facts(query: str, timeout: float = 4.0) -> dict | None:
+    """Query Open Food Facts (Netherlands) for product nutritional values per 100g."""
+    if not query or not query.strip():
+        return None
+    url = f"https://nl.openfoodfacts.org/cgi/search.pl?search_terms={urllib.parse.quote(query.strip())}&search_simple=1&action=process&json=1&page_size=3"
+    req = urllib.request.Request(url, headers={"User-Agent": "AtesFitness - iOS - Version 1.0"})
+    try:
+        ctx = ssl.create_default_context()
+        try:
+            import certifi
+            ctx.load_verify_locations(certifi.where())
+        except Exception:
+            ctx = ssl._create_unverified_context()
+
+        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as r:
+            data = json.load(r)
+            for p in data.get("products", []):
+                nut = p.get("nutriments", {})
+                name = p.get("product_name") or query.strip()
+                kcal = nut.get("energy-kcal_100g")
+                p_val = nut.get("proteins_100g")
+                if kcal is not None and p_val is not None:
+                    return {
+                        "name": str(name).strip(),
+                        "category": "Genel",
+                        "kcal": float(kcal),
+                        "protein": float(p_val),
+                        "fat": float(nut.get("fat_100g") or 0.0),
+                        "carbs": float(nut.get("carbohydrates_100g") or 0.0),
+                        "fiber": float(nut.get("fiber_100g") or 0.0),
+                        "source": "Open Food Facts (Hollanda)",
+                    }
+    except Exception:
+        return None
+    return None
+
+
+def lookup_food_macros(query: str, grams: float = 100.0) -> dict | None:
+    """Smart lookup for food macros by name or keyword, scaled to requested gram weight.
+    Checks offline Dutch/fitness staple catalog first (instant 0 ms), then falls back to Open Food Facts.
+    """
+    if not query or not query.strip():
+        return None
+    q = query.strip().lower()
+    grams = max(1.0, float(grams))
+    ratio = grams / 100.0
+
+    # 1. Check offline staples
+    for item in OFFLINE_STAPLE_FOODS:
+        for kw in item["keywords"]:
+            if kw in q or q in kw:
+                return {
+                    "name": item["name"],
+                    "category": item["category"],
+                    "grams": grams,
+                    "portion_str": f"{int(grams)}g",
+                    "kcal": int(round(item["kcal"] * ratio)),
+                    "protein": round(item["protein"] * ratio, 1),
+                    "fat": round(item["fat"] * ratio, 1),
+                    "carbs": round(item["carbs"] * ratio, 1),
+                    "fiber": round(item["fiber"] * ratio, 1),
+                    "notes": item.get("notes", ""),
+                    "per_100g": {
+                        "kcal": item["kcal"],
+                        "protein": item["protein"],
+                        "fat": item["fat"],
+                        "carbs": item["carbs"],
+                        "fiber": item["fiber"],
+                    },
+                    "source": "Yerel Besin Kütüphanesi",
+                }
+
+    # 2. Fall back to Open Food Facts
+    off_res = query_open_food_facts(query)
+    if off_res:
+        return {
+            "name": off_res["name"],
+            "category": off_res.get("category", "Genel"),
+            "grams": grams,
+            "portion_str": f"{int(grams)}g",
+            "kcal": int(round(off_res["kcal"] * ratio)),
+            "protein": round(off_res["protein"] * ratio, 1),
+            "fat": round(off_res["fat"] * ratio, 1),
+            "carbs": round(off_res["carbs"] * ratio, 1),
+            "fiber": round(off_res["fiber"] * ratio, 1),
+            "notes": "Open Food Facts veritabanından otomatik çekildi.",
+            "per_100g": {
+                "kcal": round(off_res["kcal"], 1),
+                "protein": round(off_res["protein"], 1),
+                "fat": round(off_res["fat"], 1),
+                "carbs": round(off_res["carbs"], 1),
+                "fiber": round(off_res["fiber"], 1),
+            },
+            "source": "Open Food Facts (Hollanda)",
+        }
+
+    return None
