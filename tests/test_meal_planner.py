@@ -81,3 +81,20 @@ def test_calculate_custom_totals():
     assert sub["protein"] == round(sub["items"]["breakfast"]["protein"] + sub["items"]["lunch"]["protein"], 1)
     assert sub["kcal"] == sub["items"]["breakfast"]["kcal"] + sub["items"]["lunch"]["kcal"]
 
+
+def test_home_product_library():
+    prods = mp.get_home_products()
+    assert len(prods) >= 15
+    names = [p["name"] for p in prods]
+    assert any("AH Magere Kwark" in n for n in names)
+    assert any("Impact Whey" in n for n in names)
+    assert any("AH Protein Mousse" in n for n in names)
+    assert any("Tavuk Göğsü" in n for n in names)
+    for p in prods:
+        assert p["kcal"] > 0
+        assert "protein" in p
+        assert "fat" in p
+        assert "carbs" in p
+        assert "fiber" in p
+
+

@@ -2219,7 +2219,11 @@ def _render_meal_planner():
 def _render_weekly_grocery():
     st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🛒 7 Günlük Dengeli Menü & Albert Heijn Alışveriş Listesi</div>", unsafe_allow_html=True)
 
-    tab_w_plan, tab_w_groc = st.tabs(["🗓 7 Günlük Örnek Menü Planı", "🛍 Albert Heijn Alışveriş Listesi"])
+    tab_w_plan, tab_w_groc, tab_w_lib = st.tabs([
+        "🗓 7 Günlük Örnek Menü Planı",
+        "🛍 Albert Heijn Alışveriş Listesi",
+        "📦 Evdeki Ürünler & Kalori Kütüphanesi",
+    ])
 
     with tab_w_plan:
         st.markdown(
@@ -2281,6 +2285,30 @@ def _render_weekly_grocery():
             )
             groc_wa = meal_planner.format_whatsapp_grocery_list(grocery_dict)
             st.code(groc_wa, language="markdown")
+
+    with tab_w_lib:
+        st.markdown(
+            "<div style='font-size:12.5px;color:var(--muted);margin-bottom:12px'>"
+            "Bu kütüphane evinde bulunan protein ürünleri, shake'ler ve taze market malzemelerinin etiket değerlerini (100g veya porsiyon bazında) içerir. "
+            "Uygulama her gün menü oluştururken ve kaydederken doğrudan bu yerel kütüphaneyi kullanır; internete veya dış servislere bağımlı değildir."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        products = meal_planner.get_home_products()
+        prod_rows = []
+        for p in products:
+            prod_rows.append({
+                "Ürün": p["name"],
+                "Kategori": p["category"],
+                "Porsiyon": p["portion"],
+                "Kalori (kcal)": p["kcal"],
+                "Protein (g)": p["protein"],
+                "Yağ (g)": p["fat"],
+                "Karb (g)": p["carbs"],
+                "Lif (g)": p["fiber"],
+                "Not": p["notes"],
+            })
+        st.dataframe(pd.DataFrame(prod_rows), use_container_width=True, hide_index=True)
 
 
 def page_nutrition():
