@@ -117,11 +117,14 @@ ATES FAM Fitness; kilo verme sürecinde kas kaybını (**sarkopeni**) önleyen, 
 
 ---
 
-## 🛡️ 5. Kalite Güvencesi ve Bekçi Mekanizması (Guards)
+## 🛡️ 5. Kalite Güvencesi ve Bekçi Mekanizması (Guards — Tamamlandı & Aktif Olarak Çalışıyor)
+
+> [!NOTE]
+> Bu bölüm geleceğe yönelik bir planlama değil; projenin her commit ve çalıştırmasında devrede olan **aktif mimari koruma kalkanıdır**.
 
 Proje, regresyonu ve kapsam sapmasını önleyen **4 koruma katmanıyla** çalışır:
 
-1. **Birim & Fonksiyonel Testler:** Cronometer ayrıştırma, takvim filtreleme, makro hesaplayıcı, WCAG kontrastı ve tüm Streamlit sayfalarının `AppTest` kontrolü.
-2. **Kapsam Bekçisi (`Scope Guard`):** `PERSIST_KEYS`, `HOME_PRODUCT_LIBRARY`, `SUPPLEMENT_PROTOCOL` ve `MEAL_DATABASE` gibi çekirdek bileşenlerin eksiksizliğini doğrular.
-3. **Doküman Bekçisi (`Document Guard`):** `README.md` ve `ROADMAP.md` dosyalarındaki test sayılarının, mimari açıklamaların ve entegrasyon bilgilerinin kodla %100 senkronize olduğunu teyit eder.
-4. **Progression-to-Regression Otomasyonu:** Yazılan her yeni test `run_tests.py` tarafından anında keşfedilir ve bir sonraki güncellemede zorunlu bir regresyon testine dönüşür.
+1. **Birim & Fonksiyonel Testler (Aktif — 117 Test):** Cronometer ayrıştırma, takvim filtreleme, makro hesaplayıcı, WCAG kontrastı ve tüm Streamlit sayfalarının `AppTest` kontrolü.
+2. **Kapsam Bekçisi (`Scope Guard` — Aktif):** `PERSIST_KEYS` (12 kalıcı anahtar), `HOME_PRODUCT_LIBRARY`, 6 parçalı `SUPPLEMENT_PROTOCOL` ve 20 tarifli `MEAL_DATABASE` gibi çekirdek bileşenlerin eksiksizliğini doğrular.
+3. **Doküman Bekçisi (`Document Guard` — Aktif):** `README.md` ve `ROADMAP.md` dosyalarındaki test sayılarının (121), mimari açıklamaların ve entegrasyon bilgilerinin kodla %100 senkronize olduğunu teyit eder.
+4. **Progression-to-Regression Otomasyonu (Aktif — Otomatik Genişleyen):** Yazılan her yeni test `run_tests.py` tarafından anında keşfedilir, dinamik olarak sayılır ve bir sonraki güncellemede zorunlu bir regresyon testine dönüşür. Toplam test paketi şu anda **121/121 yeşil** olarak kilitlenmiştir.
