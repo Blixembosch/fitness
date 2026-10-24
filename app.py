@@ -2037,8 +2037,15 @@ def _render_meal_planner():
                         for ing in selected_meal.get("ingredients", [])
                     )
 
+                    meal_sups = meal_planner.get_meal_supplements(cat_key)
+                    if meal_sups:
+                        sup_items_str = " · ".join(f"{s['name'].split()[1] if len(s['name'].split())>1 else s['name']} ({s['dose'].split('(')[0].strip()})" for s in meal_sups)
+                        sups_badge_html = f"<div style='background:rgba(147,51,234,0.08);border-left:3px solid #9333ea;padding:5px 8px;border-radius:4px;font-size:11px;color:var(--fg);margin-bottom:6px'>💊 <b>Takviye:</b> {sup_items_str}</div>"
+                    else:
+                        sups_badge_html = ""
+
                     st.markdown(
-                        f"<div style='background:var(--surface-2);border-radius:12px;padding:12px;margin-top:6px;min-height:355px;display:flex;flex-direction:column;justify-content:space-between'>"
+                        f"<div style='background:var(--surface-2);border-radius:12px;padding:12px;margin-top:6px;min-height:365px;display:flex;flex-direction:column;justify-content:space-between'>"
                         f"<div>"
                         f"<div style='font-weight:700;font-size:13px;color:var(--fg)'>{selected_meal['name']}</div>"
                         f"<div style='font-size:11.5px;color:var(--muted);min-height:32px;margin-bottom:6px;line-height:1.4'>⏱ Hazırlama: {selected_meal.get('prep_time', '5 dk')} · {selected_meal.get('subtitle', '')}</div>"
@@ -2046,8 +2053,9 @@ def _render_meal_planner():
                         f"<ul style='margin:0 0 8px 18px;padding:0;min-height:105px'>{ing_html}</ul>"
                         f"</div>"
                         f"<div>"
-                        f"<div style='background:rgba(56,152,255,0.08);border-left:3px solid var(--blue);padding:6px 10px;border-radius:4px;font-size:11.5px;color:var(--fg);margin-bottom:8px;min-height:46px;display:flex;align-items:center'>"
+                        f"<div style='background:rgba(56,152,255,0.08);border-left:3px solid var(--blue);padding:6px 10px;border-radius:4px;font-size:11.5px;color:var(--fg);margin-bottom:6px;min-height:44px;display:flex;align-items:center'>"
                         f"<span>💡 <i>{selected_meal.get('wegovy_tip', '')}</i></span></div>"
+                        f"{sups_badge_html}"
                         f"<div style='display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--fg);background:var(--surface);padding:5px 8px;border-radius:6px;border:1px solid var(--line)'>"
                         f"<span>🔥 {selected_meal['kcal']} kcal</span>"
                         f"<span style='color:var(--orange)'>🥩 {selected_meal['protein']:.0f}g P</span>"
@@ -2202,6 +2210,99 @@ def _render_meal_planner():
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown(
+            "<div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>"
+            "<span style='font-size:18px'>💊</span>"
+            "<span style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>Günlük Takviye & GLP-1 Destek Takibi</span>"
+            "</div>"
+            "<div style='font-size:12px;color:var(--muted);margin-bottom:12px'>"
+            "Wegovy ile azalan porsiyonlarda mikronütrient açığını kapatmak, kas kütlesini korumak ve sindirimi (şişkinlik, kabızlık, kramp) optimize etmek için evdeki takviyelerinizle oluşturulan günlük protokol:"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        today_iso = TODAY.isoformat()
+        if "supplements_log" not in S or not isinstance(S["supplements_log"], dict):
+            S["supplements_log"] = {}
+        sup_logs = S["supplements_log"].setdefault(today_iso, {})
+
+        c_sup1, c_sup2, c_sup3 = st.columns(3, gap="medium")
+
+        with c_sup1:
+            st.markdown(
+                "<div style='background:rgba(249,115,22,0.1);padding:6px 10px;border-radius:6px;margin-bottom:8px'>"
+                "<div style='font-size:11.5px;font-weight:800;color:var(--orange)'>🌅 SABAH (08:30 - Kahvaltı İle)</div>"
+                "<div style='font-size:10.5px;color:var(--muted)'>Tok karnına · Yağlı kahvaltıyla emilir</div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            chk_multi = st.checkbox(
+                "Ocean Daily One Multivitamin",
+                value=bool(sup_logs.get("multi", False)),
+                key=f"sup_chk_multi_{today_iso}",
+                help="1 Tablet. B12, Folat, Demir, Çinko ile enerji ve temel mikrobesin desteği."
+            )
+            st.caption("💊 1 Tablet · Enerji & B-Kompleks")
+            chk_d3 = st.checkbox(
+                "Ocean Vitamin D3 1000 IU Sprey",
+                value=bool(sup_logs.get("d3", False)),
+                key=f"sup_chk_d3_{today_iso}",
+                help="2 Puff (2000 IU). Kemik ve kas yoğunluğunu korur, bağışıklığı destekler."
+            )
+            st.caption("☀️ 2 Puff (2000 IU) · Kemik & Kas Koruma")
+
+        with c_sup2:
+            st.markdown(
+                "<div style='background:rgba(56,152,255,0.1);padding:6px 10px;border-radius:6px;margin-bottom:8px'>"
+                "<div style='font-size:11.5px;font-weight:800;color:var(--blue)'>☀️ ÖĞLE / ARA ÖĞÜN (13:00 - 15:30)</div>"
+                "<div style='font-size:10.5px;color:var(--muted)'>Yemekle birlikte · Sindirim ve ödem desteği</div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            chk_vitc = st.checkbox(
+                "Ocean C Vitamini 1000 mg + Bioflavonoid",
+                value=bool(sup_logs.get("vitc", False)),
+                key=f"sup_chk_vitc_{today_iso}",
+                help="1 Tablet. Kilo kaybında cilt elastikiyeti, kolajen ve antioksidan koruma."
+            )
+            st.caption("🍊 1 Tablet · Kolajen & Cilt Koruma")
+            chk_brom = st.checkbox(
+                "Orzax Ocean Bromelain 500 mg",
+                value=bool(sup_logs.get("bromelain", False)),
+                key=f"sup_chk_brom_{today_iso}",
+                help="1 Kapsül. Doğal ananas enzimi; protein sindirimini hızlandırır, Wegovy şişkinliğini önler."
+            )
+            st.caption("🍍 1 Kapsül · Protein Sindirimi & Şişkinlik Önleme")
+
+        with c_sup3:
+            st.markdown(
+                "<div style='background:rgba(147,51,234,0.1);padding:6px 10px;border-radius:6px;margin-bottom:8px'>"
+                "<div style='font-size:11.5px;font-weight:800;color:var(--purple)'>🌙 GECE (21:30 - 22:30 Yatmadan)</div>"
+                "<div style='font-size:10.5px;color:var(--muted)'>Yatmadan önce bol suyla</div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            chk_mag = st.checkbox(
+                "Orzax ExtraMag Üçlü Magnezyum",
+                value=bool(sup_logs.get("magnesium", False)),
+                key=f"sup_chk_mag_{today_iso}",
+                help="1 Tablet (Malat + Bisglisinat + Sitrat). GLP-1 kabızlığını önler, krampları engeller, uyku kalitesini artırır."
+            )
+            st.caption("🧘 1 Tablet · Kabızlık Önleme, Kramp & Derin Uyku")
+
+        new_sup_state = {
+            "multi": chk_multi,
+            "d3": chk_d3,
+            "vitc": chk_vitc,
+            "bromelain": chk_brom,
+            "magnesium": chk_mag,
+        }
+        if new_sup_state != sup_logs:
+            S["supplements_log"][today_iso] = new_sup_state
+            _save()
+
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(
             "<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>"
             "<span style='font-size:18px'>📱</span>"
             "<span style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>Eşine Gönder & WhatsApp Menü Bildirimi</span>"
@@ -2296,8 +2397,23 @@ def _render_weekly_grocery():
         )
         custom_prods = S.get("custom_products", [])
         products = meal_planner.get_home_products(custom_prods)
+
+        cs1, cs2 = st.columns([2.5, 1.5])
+        filter_q = cs1.text_input("🔍 Kütüphanede Ara", placeholder="Ürün adı veya not ara (örn. somon, kwark, whey...)", key="filter_prod_q")
+        all_cats = sorted(list({p.get("category", "Genel") for p in products}))
+        filter_cat = cs2.selectbox("Kategori Filtresi", ["Tümü"] + all_cats, key="filter_prod_cat")
+
         prod_rows = []
         for p in products:
+            if filter_cat != "Tümü" and p.get("category") != filter_cat:
+                continue
+            if filter_q.strip():
+                kw = filter_q.strip().lower()
+                name_match = kw in p.get("name", "").lower()
+                note_match = kw in p.get("notes", "").lower()
+                cat_match = kw in p.get("category", "").lower()
+                if not (name_match or note_match or cat_match):
+                    continue
             prod_rows.append({
                 "Ürün": p.get("name", ""),
                 "Kategori": p.get("category", "Genel"),
@@ -2309,6 +2425,7 @@ def _render_weekly_grocery():
                 "Lif (g)": p.get("fiber", 0.0),
                 "Not": p.get("notes", ""),
             })
+        st.markdown(f"<div style='font-size:11.5px;color:var(--muted);margin-bottom:6px'>{len(prod_rows)} / {len(products)} ürün listeleniyor</div>", unsafe_allow_html=True)
         st.dataframe(pd.DataFrame(prod_rows), use_container_width=True, hide_index=True)
 
         with st.container(border=True):
@@ -2431,15 +2548,61 @@ def _render_weekly_grocery():
                     st.rerun()
 
         if custom_prods:
-            with st.expander("🗑 Eklediğiniz Özel Ürünleri Yönet / Sil", expanded=False):
+            with st.expander("🛠 Eklediğiniz Özel Ürünleri Yönet / Düzenle / Sil", expanded=False):
                 for idx, cp in enumerate(list(custom_prods)):
-                    rc1, rc2 = st.columns([4, 1])
-                    rc1.markdown(f"**{cp.get('name', 'İsimsiz')}** ({cp.get('portion', '')}) — {cp.get('kcal', 0)} kcal, {cp.get('protein', 0)}g Protein")
-                    if rc2.button("Sil", key=f"del_cp_{idx}"):
+                    rc1, rc2, rc3 = st.columns([3, 1, 1])
+                    rc1.markdown(f"**{cp.get('name', 'İsimsiz')}** ({cp.get('portion', '')}) — {cp.get('kcal', 0)} kcal, {cp.get('protein', 0)}g P")
+                    is_editing = (st.session_state.get("_edit_cp_idx") == idx)
+                    if rc2.button("✏️ Düzenle" if not is_editing else "Kapat", key=f"btn_toggle_edit_cp_{idx}"):
+                        st.session_state["_edit_cp_idx"] = None if is_editing else idx
+                        st.rerun()
+                    if rc3.button("🗑 Sil", key=f"del_cp_{idx}"):
                         custom_prods.pop(idx)
                         S["custom_products"] = custom_prods
                         _save()
+                        st.session_state["_edit_cp_idx"] = None
                         st.rerun()
+
+                    if st.session_state.get("_edit_cp_idx") == idx:
+                        with st.container(border=True):
+                            st.markdown(f"**✏️ '{cp.get('name')}' Bilgilerini Güncelle:**")
+                            ed_c1, ed_c2 = st.columns([2, 1])
+                            ed_name = ed_c1.text_input("Ürün Adı", value=cp.get("name", ""), key=f"ed_name_{idx}")
+                            all_cats = ["Et & Tavuk & Balık", "Süt & Yoğurt", "Peynir & Şarküteri", "Protein Tozu",
+                                        "Tatlı & Mousse", "İçecek & Meal Replacement", "Fıstık Ezmesi & Kuruyemiş",
+                                        "Yumurta & Kahvaltılık", "Tahıl & Karbonhidrat", "Sebze & Meyve", "Bakliyat", "Diğer"]
+                            cat_cur = cp.get("category", "Genel")
+                            cat_idx = all_cats.index(cat_cur) if cat_cur in all_cats else 0
+                            ed_cat = ed_c2.selectbox("Kategori", all_cats, index=cat_idx, key=f"ed_cat_{idx}")
+
+                            ed_c3, ed_c4 = st.columns([1, 1])
+                            ed_portion = ed_c3.text_input("Porsiyon Tanımı", value=cp.get("portion", "100g"), key=f"ed_portion_{idx}")
+                            ed_notes = ed_c4.text_input("Not", value=cp.get("notes", ""), key=f"ed_notes_{idx}")
+
+                            em1, em2, em3, em4, em5 = st.columns(5)
+                            ed_kcal = em1.number_input("Kalori", min_value=0, max_value=2000, value=int(cp.get("kcal", 0)), step=5, key=f"ed_kcal_{idx}")
+                            ed_p = em2.number_input("Protein", min_value=0.0, max_value=200.0, value=float(cp.get("protein", 0)), step=0.5, key=f"ed_p_{idx}")
+                            ed_f = em3.number_input("Yağ", min_value=0.0, max_value=100.0, value=float(cp.get("fat", 0)), step=0.5, key=f"ed_f_{idx}")
+                            ed_c = em4.number_input("Karb", min_value=0.0, max_value=200.0, value=float(cp.get("carbs", 0)), step=0.5, key=f"ed_c_{idx}")
+                            ed_fib = em5.number_input("Lif", min_value=0.0, max_value=50.0, value=float(cp.get("fiber", 0)), step=0.5, key=f"ed_fib_{idx}")
+
+                            if st.button("💾 Güncellemeyi Kaydet", type="primary", key=f"btn_save_edit_{idx}"):
+                                updated_item = {
+                                    "name": ed_name.strip() or cp.get("name"),
+                                    "category": ed_cat,
+                                    "portion": ed_portion.strip() or "100g",
+                                    "kcal": int(ed_kcal),
+                                    "protein": float(ed_p),
+                                    "fat": float(ed_f),
+                                    "carbs": float(ed_c),
+                                    "fiber": float(ed_fib),
+                                    "notes": ed_notes.strip(),
+                                }
+                                S["custom_products"][idx] = updated_item
+                                _save()
+                                st.session_state["_edit_cp_idx"] = None
+                                st.success("Ürün bilgileri başarıyla güncellendi!")
+                                st.rerun()
 
 
 def page_nutrition():

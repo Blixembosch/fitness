@@ -146,3 +146,33 @@ def test_lookup_food_macros():
     assert mp.lookup_food_macros("   ") is None
 
 
+def test_supplement_protocol():
+    sups = mp.get_supplement_protocol()
+    assert len(sups) == 5
+    ids = [s["id"] for s in sups]
+    assert "multi" in ids
+    assert "d3" in ids
+    assert "vitc" in ids
+    assert "bromelain" in ids
+    assert "magnesium" in ids
+
+    # Check meal mapping
+    b_sups = mp.get_meal_supplements("breakfast")
+    assert len(b_sups) == 2  # multi + d3
+
+    l_sups = mp.get_meal_supplements("lunch")
+    assert len(l_sups) == 2  # vitc + bromelain
+
+    d_sups = mp.get_meal_supplements("dinner")
+    assert len(d_sups) == 1  # magnesium
+
+    # WhatsApp plan includes supplement block
+    sample = {"breakfast": "b1", "lunch": "l1", "snack": "s1", "dinner": "d1"}
+    msg = mp.format_whatsapp_daily_plan(sample, "Pazar")
+    assert "GÜNLÜK TAKVİYE PROTOKOLÜ" in msg
+    assert "Multivitamin" in msg
+    assert "D3 Sprey" in msg
+    assert "ExtraMag" in msg
+    assert "Bromelain" in msg
+
+

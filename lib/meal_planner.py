@@ -772,6 +772,70 @@ def generate_smart_menu(seed_idx: int = 0) -> dict[str, str]:
     }
 
 
+SUPPLEMENT_PROTOCOL: list[dict] = [
+    {
+        "id": "multi",
+        "name": "Ocean Daily One Energy Multivitamin & Multimineral",
+        "meal": "breakfast",
+        "meal_title": "1. Kahvaltı",
+        "time": "08:30 - 09:30",
+        "dose": "1 Tablet (Kahvaltı sonrası, tok karnına)",
+        "timing_reason": "B-kompleks vitaminleri enerji metabolizmasını destekler, mide hassasiyetini önlemek için kahvaltıyla alınır.",
+        "glp1_benefit": "Wegovy ile azalan porsiyonlarda temel mikrobesin açığını (B12, Folat, Çinko, Demir) kapatır, yorgunluğu önler.",
+    },
+    {
+        "id": "d3",
+        "name": "Ocean Vitamin D3 1000 IU Sprey",
+        "meal": "breakfast",
+        "meal_title": "1. Kahvaltı",
+        "time": "08:30 - 09:30",
+        "dose": "2 Puff (2000 IU - Kahvaltı sırasında)",
+        "timing_reason": "Yağda çözünen vitamin; kahvaltıdaki yumurta veya fıstık ezmesi gibi sağlıklı yağlarla maksimum emilir.",
+        "glp1_benefit": "Kilo verme sürecinde kemik mineral yoğunluğunu korur, kas protein sentezini ve bağışıklığı destekler.",
+    },
+    {
+        "id": "vitc",
+        "name": "Ocean C Vitamini 1000 mg + Bioflavonoidler",
+        "meal": "lunch",
+        "meal_title": "2. Öğle Yemeği",
+        "time": "12:30 - 13:30",
+        "dose": "1 Tablet (Yemekle birlikte)",
+        "timing_reason": "Asidik yapısı nedeniyle yemekle alınması mideyi korur. Bioflavonoidler C vitamininin biyoyararlanımını artırır.",
+        "glp1_benefit": "Hızlı kilo kaybında kolajen sentezini uyararak cilt sarkmasını önler, hücreleri oksidatif stresten korur.",
+    },
+    {
+        "id": "bromelain",
+        "name": "Orzax Ocean Bromelain 500 Mg",
+        "meal": "lunch",
+        "meal_title": "2. Öğle Yemeği / 3. Ara Öğün",
+        "time": "13:00 - 16:00",
+        "dose": "1 Kapsül (Ana protein öğünüyle veya hemen öncesinde)",
+        "timing_reason": "Ağır proteinli öğünden hemen önce veya öğün sırasında alınır.",
+        "glp1_benefit": "Doğal ananas enzimi; proteinlerin sindirimini hızlandırır, Wegovy'nin mide boşalmasını geciktirmesine bağlı şişkinlik ve gazı hafifletir, ödem atımını destekler.",
+    },
+    {
+        "id": "magnesium",
+        "name": "Orzax Ocean ExtraMag Üçlü Magnezyum (Malat + Bisglisinat + Sitrat)",
+        "meal": "dinner",
+        "meal_title": "4. Akşam Yemeği / Gece",
+        "time": "21:30 - 22:30",
+        "dose": "1 Tablet (Yatmadan 1-2 saat önce bol suyla)",
+        "timing_reason": "Gece yatmadan 1-2 saat önce bol suyla alınır.",
+        "glp1_benefit": "GLP-1'in en yaygın yan etkisi olan kabızlığı sitrat formuyla önler, bisglisinat ile gece kas kramplarını engeller ve derin uyku sağlar.",
+    },
+]
+
+
+def get_supplement_protocol() -> list[dict]:
+    """Return the curated clinical supplement protocol for Wegovy & muscle preservation."""
+    return SUPPLEMENT_PROTOCOL
+
+
+def get_meal_supplements(meal_key: str) -> list[dict]:
+    """Return supplements assigned to a specific meal."""
+    return [s for s in SUPPLEMENT_PROTOCOL if s["meal"] == meal_key]
+
+
 def format_whatsapp_daily_plan(selected_ids: dict[str, str], day_label: str = "Yarınki") -> str:
     """Generate an aesthetic, spouse-friendly WhatsApp message detailing tomorrow's planned menu."""
     totals = calculate_menu_totals(selected_ids)
@@ -801,9 +865,14 @@ def format_whatsapp_daily_plan(selected_ids: dict[str, str], day_label: str = "Y
         f"🍲 *4. AKŞAM YEMEĞİ:* {d.get('name', '')}\n"
         f"👉 _{d_ing}_\n"
         f"📊 {d.get('kcal')} kcal · {d.get('protein'):.0f}g Protein · {d.get('carbs'):.0f}g Karb · {d.get('fat'):.0f}g Yağ · {d.get('fiber'):.0f}g Lif\n\n"
+        f"💊 *GÜNLÜK TAKVİYE PROTOKOLÜ (Wegovy & Kas Desteği):*\n"
+        f"  ▫️ *Sabah (Kahvaltı Sonrası):* Ocean Multivitamin (1 tb) + Ocean D3 Sprey (2 puff / 2000 IU)\n"
+        f"  ▫️ *Öğle / Ara:* Ocean C Vitamini 1000 mg (1 tb) + Ocean Bromelain 500 mg (1 kap - sindirim & ödem)\n"
+        f"  ▫️ *Gece (Yatmadan):* Orzax ExtraMag Üçlü Magnezyum (1 tb - kabızlık önleme & kramp & derin uyku)\n\n"
         f"💡 _Not: Wegovy mide boşalmasını geciktirdiği için porsiyonlar 4 öğüne eşit yayıldı; akşam yemeği hafif ve lif zenginidir._"
     )
     return msg
+
 
 
 def generate_grocery_list(week_plan: list[dict] | None = None) -> dict[str, list[str]]:
