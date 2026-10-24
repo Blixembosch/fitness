@@ -2071,6 +2071,121 @@ def _render_meal_planner():
     ])
     st.markdown(f"<div class='fcard'><div class='eyebrow'>Seçilen 4 Öğünün Günlük Toplamı vs. Hedef</div><div class='tiles'>{tot_tiles}</div></div>", unsafe_allow_html=True)
 
+    # Direct Nutrition Consumption Logger (Cronometer-free tracking)
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(
+            "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px'>"
+            "<div style='display:flex;align-items:center;gap:8px'>"
+            "<span style='font-size:18px'>📥</span>"
+            "<span style='font-family:Nunito;font-weight:900;font-size:14.5px;color:var(--fg)'>Günün Beslenmesini Uygulamaya Kaydet</span>"
+            "</div>"
+            "<div style='font-size:11px;background:rgba(52,211,153,0.15);color:var(--green);padding:3px 9px;border-radius:12px;font-weight:700'>✨ Cronometer'a Manuel Giriş Gerekmez</div>"
+            "</div>"
+            "<div style='font-size:12px;color:var(--muted);margin-bottom:10px'>"
+            "Yukarıda seçtiğin menüyü tek tıkla doğrudan uygulamaya kaydedebilirsin. Böylece Cronometer'a her gün tek tek ürün girmene gerek kalmaz; panon anlık olarak kalori ve makrolarını hesaplar."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        col_ld1, col_ld2 = st.columns([1.5, 2.5], gap="medium")
+        with col_ld1:
+            log_date = st.date_input("Kayıt Tarihi", value=TODAY, max_value=TODAY, format="DD.MM.YYYY", key="mp_log_date")
+            iso_d = log_date.strftime("%Y-%m-%d")
+
+            ndf = S.get("nutrition")
+            existing_row = None
+            if ndf is not None and not ndf.empty and "date" in ndf.columns:
+                match = ndf[ndf["date"] == iso_d]
+                if not match.empty:
+                    existing_row = match.iloc[0].to_dict()
+
+            if existing_row:
+                st.markdown(
+                    f"<div style='background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:8px 10px;margin-top:6px'>"
+                    f"<div style='font-weight:800;font-size:11.5px;color:var(--green)'>✓ Bu gün kayıtlı ({iso_d})</div>"
+                    f"<div style='font-size:11.5px;color:var(--fg);margin-top:2px'>"
+                    f"🔥 {int(existing_row.get('kcal',0))} kcal · "
+                    f"🥩 {int(existing_row.get('protein',0))}g P · "
+                    f"🥑 {int(existing_row.get('fat',0))}g Y · "
+                    f"🍚 {int(existing_row.get('carbs',0))}g K · "
+                    f"🥦 {int(existing_row.get('fiber',0))}g Lif"
+                    f"</div></div>",
+                    unsafe_allow_html=True,
+                )
+
+        with col_ld2:
+            st.markdown("<div style='font-size:12px;font-weight:700;color:var(--fg);margin-bottom:4px'>Tüketilen Öğünler:</div>", unsafe_allow_html=True)
+            b_item = totals["items"].get("breakfast", {})
+            l_item = totals["items"].get("lunch", {})
+            s_item = totals["items"].get("snack", {})
+            d_item = totals["items"].get("dinner", {})
+
+            col_chk1, col_chk2 = st.columns(2, gap="small")
+            chk_b = col_chk1.checkbox(f"🍳 Kahvaltı ({b_item.get('kcal', 0)} kcal · {b_item.get('protein', 0):.0f}g P)", value=True, key="chk_b")
+            chk_l = col_chk2.checkbox(f"🥗 Öğle ({l_item.get('kcal', 0)} kcal · {l_item.get('protein', 0):.0f}g P)", value=True, key="chk_l")
+            chk_s = col_chk1.checkbox(f"🥤 Ara Öğün ({s_item.get('kcal', 0)} kcal · {s_item.get('protein', 0):.0f}g P)", value=True, key="chk_s")
+            chk_d = col_chk2.checkbox(f"🍲 Akşam ({d_item.get('kcal', 0)} kcal · {d_item.get('protein', 0):.0f}g P)", value=True, key="chk_d")
+
+            active_meals = []
+            if chk_b:
+                active_meals.append("breakfast")
+            if chk_l:
+                active_meals.append("lunch")
+            if chk_s:
+                active_meals.append("snack")
+            if chk_d:
+                active_meals.append("dinner")
+
+            sub_tots = meal_planner.calculate_custom_totals(S["meal_planner"], active_meals)
+
+        col_act1, col_act2, col_act3 = st.columns([2, 1.3, 1], gap="small")
+        with col_act1:
+            st.markdown(
+                f"<div style='font-size:12px;font-weight:700;color:var(--fg);padding-top:6px'>"
+                f"Seçilen: <span style='color:var(--blue)'>{sub_tots['kcal']} kcal</span> · "
+                f"<span style='color:var(--orange)'>{sub_tots['protein']:.0f}g P</span> · "
+                f"<span style='color:var(--purple)'>{sub_tots['fat']:.0f}g Y</span> · "
+                f"<span style='color:var(--teal)'>{sub_tots['carbs']:.0f}g K</span> · "
+                f"<span style='color:var(--green)'>{sub_tots['fiber']:.0f}g Lif</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+        with col_act2:
+            if st.button("💾 Tüketimi Kaydet", type="primary", use_container_width=True, key="btn_save_daily_intake"):
+                S["nutrition"] = nutrition.upsert_day(
+                    S.get("nutrition"),
+                    iso_d,
+                    kcal=sub_tots["kcal"],
+                    protein=sub_tots["protein"],
+                    carbs=sub_tots["carbs"],
+                    fat=sub_tots["fat"],
+                    fiber=sub_tots["fiber"],
+                )
+                _save()
+                st.success(f"{iso_d} beslenmesi başarıyla kaydedildi ✓")
+                st.rerun()
+
+        with col_act3:
+            if existing_row:
+                if st.button("🗑️ Kaydı Sil", use_container_width=True, key="btn_del_daily_intake"):
+                    S["nutrition"] = nutrition.remove_day(S.get("nutrition"), iso_d)
+                    _save()
+                    st.info(f"{iso_d} kaydı silindi.")
+                    st.rerun()
+
+        with st.expander("📄 Cronometer İçe Aktarımı İçin CSV İndir / Kopyala"):
+            st.caption("Eğer Cronometer Web hesabına da yedeklemek istersen, uygulamanın hesapladığı günlük kayıtları CSV olarak dışa aktarabilirsin:")
+            csv_content = nutrition.generate_cronometer_csv(S.get("nutrition"))
+            st.download_button(
+                "📥 dailysummary.csv İndir (Cronometer Uyumlu)",
+                data=csv_content,
+                file_name="dailysummary.csv",
+                mime="text/csv",
+                key="btn_download_crono_csv",
+            )
+            st.code(csv_content, language="csv")
+
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown(
@@ -2180,7 +2295,8 @@ def page_nutrition():
                     kind = cronometer.detect(head)
                     try:
                         if kind == "nutrition":
-                            S["nutrition"] = nutrition.parse_cronometer(raw)
+                            parsed_nut = nutrition.parse_cronometer(raw)
+                            S["nutrition"] = nutrition.merge_nutrition(S.get("nutrition"), parsed_nut)
                             msgs.append(f"beslenme {len(S['nutrition'])} gün")
                         elif kind == "biometrics":
                             bw = cronometer.parse_biometrics(raw)
@@ -2270,7 +2386,7 @@ def page_nutrition():
                 ui.tile("Lif Hedefi", f"{FIBER_TARGET}<small> g</small>", "Wegovy GI Konforu", "good"),
             ])
             st.markdown(f"<div class='tiles' style='margin-bottom:12px'>{tiles_html}</div>", unsafe_allow_html=True)
-            st.info("Cronometer'dan **dailysummary.csv** yükle; gün içindeki tüketimini ve kalan makrolarını yukarıdaki hedeflere göre canlı karşılaştırırım.")
+            st.info("💡 Henüz bugünün beslenme kaydı girilmedi. **🥗 4 Öğünlü Akıllı Menü** sekmesinden günün öğünlerini tek tıkla doğrudan uygulamaya kaydedebilir ya da Cronometer'dan **dailysummary.csv** yükleyebilirsin.")
 
         with st.container(border=True):
             st.markdown("<div class='eyebrow' style='margin:0 0 8px'>⚖️ Manuel Kilo Kaydet</div>", unsafe_allow_html=True)

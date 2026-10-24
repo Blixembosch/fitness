@@ -468,3 +468,41 @@ def test_functional_meal_planner_tabs_and_options():
         assert at.session_state["meal_planner"]["breakfast"] is not None
 
 
+def test_functional_direct_daily_meal_logging_and_deletion():
+    """Verify 1-click meal logging to S['nutrition'], persistence, and deletion."""
+    import datetime as dt
+    with tempfile.TemporaryDirectory() as td:
+        os.environ["FITNESS_DB_PATH"] = str(Path(td) / "test.db")
+        at = _run_app("nutrition")
+        assert not at.exception
+
+        today_iso = dt.date.today().strftime("%Y-%m-%d")
+
+        # Find save daily intake button
+        btn_save = next((b for b in at.button if b.key == "btn_save_daily_intake"), None)
+        assert btn_save is not None, "Save daily intake button missing"
+
+        # Click save
+        btn_save.click().run()
+        assert not at.exception
+
+        # Verify S["nutrition"] has today's record
+        ndf = at.session_state["nutrition"]
+        assert ndf is not None and not ndf.empty
+        today_row = ndf[ndf["date"] == today_iso]
+        assert not today_row.empty
+        assert today_row.iloc[0]["protein"] >= 140.0
+        assert today_row.iloc[0]["kcal"] >= 1700.0
+
+        # Now delete button must be visible
+        btn_del = next((b for b in at.button if b.key == "btn_del_daily_intake"), None)
+        assert btn_del is not None, "Delete button missing when day is logged"
+
+        # Click delete
+        btn_del.click().run()
+        assert not at.exception
+        ndf_after = at.session_state["nutrition"]
+        assert ndf_after.empty or (today_iso not in ndf_after["date"].values)
+
+
+

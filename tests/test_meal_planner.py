@@ -70,3 +70,14 @@ def test_grocery_list_generation():
     msg = mp.format_whatsapp_grocery_list(groceries)
     assert "Alışveriş Listesi" in msg
     assert "Albert Heijn" in msg
+
+
+def test_calculate_custom_totals():
+    # Only breakfast and lunch enabled
+    selected = {"breakfast": "b1", "lunch": "l1", "snack": "s1", "dinner": "d1"}
+    sub = mp.calculate_custom_totals(selected, enabled_types=["breakfast", "lunch"])
+    assert "snack" not in sub["items"]
+    assert "dinner" not in sub["items"]
+    assert sub["protein"] == round(sub["items"]["breakfast"]["protein"] + sub["items"]["lunch"]["protein"], 1)
+    assert sub["kcal"] == sub["items"]["breakfast"]["kcal"] + sub["items"]["lunch"]["kcal"]
+

@@ -135,3 +135,75 @@ def protein_adherence(days: pd.DataFrame, protein_target: float) -> dict:
         "avg_protein": round(days["protein"].mean()),
         "avg_kcal": round(days["kcal"].mean()),
     }
+
+
+def upsert_day(
+    df: pd.DataFrame | None,
+    date_str: str,
+    kcal: float,
+    protein: float,
+    carbs: float,
+    fat: float,
+    fiber: float,
+) -> pd.DataFrame:
+    """Insert or update a single day's nutrition row in the nutrition DataFrame."""
+    row = {
+        "date": str(date_str),
+        "kcal": round(float(kcal), 1),
+        "protein": round(float(protein), 1),
+        "carbs": round(float(carbs), 1),
+        "fat": round(float(fat), 1),
+        "fiber": round(float(fiber), 1),
+    }
+    cols = ["date", "kcal", "protein", "carbs", "fat", "fiber"]
+    if df is None or df.empty:
+        return pd.DataFrame([row], columns=cols)
+    new_df = df.copy()
+    for col in cols:
+        if col not in new_df.columns:
+            new_df[col] = 0.0
+    if date_str in new_df["date"].values:
+        idx = new_df.index[new_df["date"] == date_str][0]
+        for k, v in row.items():
+            new_df.at[idx, k] = v
+    else:
+        new_df = pd.concat([new_df, pd.DataFrame([row])], ignore_index=True)
+    return new_df.sort_values("date").reset_index(drop=True)
+
+
+def remove_day(df: pd.DataFrame | None, date_str: str) -> pd.DataFrame:
+    """Remove a day's nutrition record from the DataFrame."""
+    cols = ["date", "kcal", "protein", "carbs", "fat", "fiber"]
+    if df is None or df.empty:
+        return pd.DataFrame(columns=cols)
+    new_df = df[df["date"] != str(date_str)].copy()
+    return new_df.sort_values("date").reset_index(drop=True)
+
+
+def merge_nutrition(base_df: pd.DataFrame | None, new_df: pd.DataFrame | None) -> pd.DataFrame:
+    """Merge two nutrition DataFrames, updating rows by date and sorting chronologically."""
+    cols = ["date", "kcal", "protein", "carbs", "fat", "fiber"]
+    if base_df is None or base_df.empty:
+        return new_df if (new_df is not None and not new_df.empty) else pd.DataFrame(columns=cols)
+    if new_df is None or new_df.empty:
+        return base_df
+    combined = pd.concat([base_df, new_df], ignore_index=True)
+    combined = combined.drop_duplicates(subset=["date"], keep="last")
+    return combined.sort_values("date").reset_index(drop=True)
+
+
+def generate_cronometer_csv(df: pd.DataFrame | None) -> str:
+    """Export nutrition records to Cronometer-compatible dailysummary.csv format."""
+    header = "Date,Energy (kcal),Protein (g),Net Carbs (g),Fat (g),Fiber (g),Group\n"
+    if df is None or df.empty:
+        return header
+    lines = [header]
+    for _, r in df.sort_values("date").iterrows():
+        d = str(r["date"])
+        kc = round(float(r.get("kcal", 0)), 1)
+        p = round(float(r.get("protein", 0)), 1)
+        c = round(float(r.get("carbs", 0)), 1)
+        f = round(float(r.get("fat", 0)), 1)
+        fib = round(float(r.get("fiber", 0)), 1)
+        lines.append(f"{d},{kc},{p},{c},{f},{fib},Total\n")
+    return "".join(lines)

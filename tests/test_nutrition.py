@@ -94,3 +94,46 @@ def test_day_summary_all_macros():
     assert ds["carbs"]["pct"] == round(170 / 190 * 100)
     assert ds["fat"]["pct"] == round(60 / 67 * 100)
 
+
+def test_upsert_and_remove_day():
+    df = None
+    # 1. Upsert first day
+    df = n.upsert_day(df, "2026-10-25", kcal=1970, protein=161, carbs=186, fat=66, fiber=29)
+    assert len(df) == 1
+    assert df.iloc[0]["date"] == "2026-10-25"
+    assert df.iloc[0]["protein"] == 161.0
+
+    # 2. Update same day
+    df = n.upsert_day(df, "2026-10-25", kcal=1980, protein=165, carbs=185, fat=65, fiber=30)
+    assert len(df) == 1
+    assert df.iloc[0]["protein"] == 165.0
+    assert df.iloc[0]["kcal"] == 1980.0
+
+    # 3. Add second day
+    df = n.upsert_day(df, "2026-10-26", kcal=1950, protein=160, carbs=190, fat=64, fiber=28)
+    assert len(df) == 2
+    assert list(df["date"]) == ["2026-10-25", "2026-10-26"]
+
+    # 4. Remove a day
+    df = n.remove_day(df, "2026-10-25")
+    assert len(df) == 1
+    assert df.iloc[0]["date"] == "2026-10-26"
+
+
+def test_merge_nutrition_and_cronometer_export():
+    df1 = pd.DataFrame([{"date": "2026-10-24", "kcal": 1800, "protein": 140, "carbs": 170, "fat": 60, "fiber": 25}])
+    df2 = pd.DataFrame([
+        {"date": "2026-10-24", "kcal": 1850, "protein": 150, "carbs": 175, "fat": 62, "fiber": 26},
+        {"date": "2026-10-25", "kcal": 1970, "protein": 161, "carbs": 186, "fat": 66, "fiber": 29},
+    ])
+    merged = n.merge_nutrition(df1, df2)
+    assert len(merged) == 2
+    assert merged.iloc[0]["protein"] == 150.0  # updated by latest df2
+    assert merged.iloc[1]["protein"] == 161.0
+
+    # Export to Cronometer CSV
+    csv_str = n.generate_cronometer_csv(merged)
+    assert "Date,Energy (kcal),Protein (g)" in csv_str
+    assert "2026-10-25,1970.0,161.0,186.0,66.0,29.0,Total" in csv_str
+
+

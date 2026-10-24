@@ -502,6 +502,28 @@ def calculate_menu_totals(selected_ids: dict[str, str]) -> dict:
     return totals
 
 
+def calculate_custom_totals(selected_ids: dict[str, str | None], enabled_types: list[str] | None = None) -> dict:
+    """Calculate combined nutritional totals for specific enabled meals (e.g. subset eaten)."""
+    if enabled_types is None:
+        enabled_types = [k for k, v in selected_ids.items() if v]
+    totals = {"kcal": 0, "protein": 0.0, "fat": 0.0, "carbs": 0.0, "fiber": 0.0, "items": {}}
+    for mtype in enabled_types:
+        mid = selected_ids.get(mtype)
+        m = find_meal_by_id(mtype, mid) if mid else None
+        if m:
+            totals["kcal"] += m["kcal"]
+            totals["protein"] += m["protein"]
+            totals["fat"] += m["fat"]
+            totals["carbs"] += m["carbs"]
+            totals["fiber"] += m["fiber"]
+            totals["items"][mtype] = m
+    totals["protein"] = round(totals["protein"], 1)
+    totals["fat"] = round(totals["fat"], 1)
+    totals["carbs"] = round(totals["carbs"], 1)
+    totals["fiber"] = round(totals["fiber"], 1)
+    return totals
+
+
 def generate_smart_menu(seed_idx: int = 0) -> dict[str, str]:
     """Pick a balanced combination of 4 meals matching ~160g P, ~65-67g F, ~185-190g C, ~28g Fiber."""
     plan = SAMPLE_7DAY_PLAN[seed_idx % len(SAMPLE_7DAY_PLAN)]
