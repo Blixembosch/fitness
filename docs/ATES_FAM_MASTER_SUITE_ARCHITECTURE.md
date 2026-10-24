@@ -59,7 +59,7 @@ ates-fam-suite/                          # Ana Özel Depo (GitHub: Blixembosch/a
 │   │   ├── main.py                      # Library giriş noktası
 │   │   ├── lib/
 │   │   └── data/                        # library.db
-│   └── flight_radar/                    # ✈️ Flight Radar (Canlı Uçuş Takip)
+│   └── atlas_flight/                    # ✈️ Atlas Flight (Canlı Uçuş & Radar Takip)
 │       ├── __init__.py
 │       ├── main.py
 │       └── lib/
@@ -72,22 +72,45 @@ ates-fam-suite/                          # Ana Özel Depo (GitHub: Blixembosch/a
 
 ---
 
-## 🔒 3. Veri İzolasyonu ve State Güvenliği (Kritik Kurallar)
+## 🔒 3. Kod, Fonksiyon ve Veri İzolasyon Mimarisi (Kritik Kurallar)
 
-Birleştirme sürecinde projelerin birbirini bozmaması için şu **3 mimari kural tavizsiz uygulanır**:
+Kullanıcının en kritik sorusu: **"Repoda bunları ayrı branch'ler altında mı tutacağız? Dataların ve fonksiyonların kesinlikle birbiriyle karışmaması gerekiyor."**
 
-### Kural 1: Session State İsim Uzayı (Namespacing)
+### A. Kod ve Fonksiyon İzolasyonu (Neden Ayrı Branch Değil, Ayrı Paket?)
+* **Streamlit Cloud Kısıtı:** Streamlit Cloud bir uygulamayı **tek bir git branch'inden** (`main`) çalıştırır; aynı anda 4 farklı branch'ten kod çekip tek ekranda birleştiremez.
+* **Fonksiyonların Karışmaması Güvencesi (Python Package Isolation):** Kodlar `main` branch'inde yaşar ancak **tamamen izole Python paketleri (`apps/*`)** içine hapsedilir:
+  * Fitness fonksiyonları: `apps.fitness.lib.*`
+  * Budget fonksiyonları: `apps.budget.lib.*`
+  * Atlas Library fonksiyonları: `apps.library.lib.*`
+  * Atlas Flight fonksiyonları: `apps.atlas_flight.lib.*`
+* Python'ın modül sistemi gereği, bir paketin içindeki fonksiyon diğer paketi **kesinlikle göremez, üzerine yazamaz veya etkileyemez**. Birbirinden tamamen habersiz, bağımsız 4 ada gibi çalışırlar.
+* *(İsteğe Bağlı Git Submodule Opsiyonu):* Eğer kaynak kodların da GitHub'da 4 ayrı repoda kalması istenirse; 4 bağımsız özel repo tutulur ve `ates-fam-suite` bu 4 depoyu **Git Submodule** olarak `apps/` altına çeker. Böylece kod depoları da %100 ayrı kalır.
+
+### B. Veritabanı ve Veri İzolasyonu (Yerel SQLite)
+Her uygulamanın veritabanı dosyası ve SQLite bağlantı havuzu tamamen ayrıdır:
+* `apps/fitness/data/fitness.db`
+* `apps/budget/data/budget.db`
+* `apps/library/data/library.db`
+* `apps/atlas_flight/data/atlas_flight.db`
+Fitness uygulaması hiçbir zaman `budget.db` bağlantısını açmaz; tablolar, sütunlar ve kayıtlar %100 izoledir.
+
+### C. GitHub Bulut Kalıcılığı: 4 Bağımsız Veri Branch'i (Data Branches)
+Verilerin bulut yedeğinde birbirine karışmaması için **GitHub'da 4 ayrı veri branch'i** kullanılır:
+* `data-fitness` branch'i $\rightarrow$ Yalnızca `fitness.sql` dökümünü tutar.
+* `data-budget` branch'i $\rightarrow$ Yalnızca `budget.sql` dökümünü tutar.
+* `data-library` branch'i $\rightarrow$ Yalnızca `library.sql` dökümünü tutar.
+* `data-flight` branch'i $\rightarrow$ Yalnızca `atlas_flight.sql` dökümünü tutar.
+
+Uygulamalar GitHub REST API ile veri kaydederken yalnızca kendi veri branch'ine commit atar. Bütçe verisinin Fitness branch'ine gitmesi matematiksel olarak imkansızdır.
+
+### D. Session State İsim Uzayı (Namespacing)
 Streamlit'in global `st.session_state` sözlüğü ortak paylaşıldığı için değişken çakışmalarını önlemek adına her uygulama kendi önekini kullanır:
 * Fitness değişkenleri: `st.session_state["fitness_targets"]`, `st.session_state["fitness_page"]`
 * Budget değişkenleri: `st.session_state["budget_transactions"]`, `st.session_state["budget_month"]`
 * Library değişkenleri: `st.session_state["library_books"]`
-* Flight Radar değişkenleri: `st.session_state["radar_aircraft"]`
+* Flight değişkenleri: `st.session_state["flight_radar_aircraft"]`
 
-### Kural 2: Bağımsız Veritabanı ve Çift Katmanlı Kalıcılık
-* Her uygulamanın SQLite veritabanı kendi klasöründe (`apps/fitness/data/fitness.db`, `apps/budget/data/budget.db`) izole kalır.
-* GitHub bağımsız `data` branch'i senkronizasyonu devam eder.
-
-### Kural 3: Bellek (RAM) Optimizasyonu
+### E. Bellek (RAM) Optimizasyonu
 * Streamlit Cloud ücretsiz katmanında 1 GB RAM bulunur.
 * Kullanıcı menüden hangi uygulamayı seçerse yalnızca o uygulama belleğe çağrılır (`lazy import`). Hafif SQLite mimarisi sayesinde 4 uygulama toplamda ~300 MB RAM tüketir (1 GB sınırının çok altındadır).
 
