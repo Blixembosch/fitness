@@ -2348,7 +2348,7 @@ def _render_meal_planner():
             "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px'>"
             "<div style='display:flex;align-items:center;gap:8px'>"
             "<span style='font-size:18px'>⏰</span>"
-            "<span style='font-family:Nunito;font-weight:900;font-size:14.5px;color:var(--fg)'>Sirkadiyen Antrenman & Besin Zamanlaması</span>"
+            "<span style='font-family:Nunito;font-weight:900;font-size:14.5px;color:var(--fg)'>Sirkadiyen Zamanlama</span>"
             "</div>"
             "<div style='font-size:11px;background:rgba(56,152,255,0.15);color:var(--blue);padding:3px 9px;border-radius:12px;font-weight:700'>🔬 Nature & Sleep Med Rev Klinik Kanıtı</div>"
             "</div>"

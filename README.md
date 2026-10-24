@@ -137,7 +137,7 @@ Kas kütlesini azami derecede korumak için tasarlanmış **3 aşamalı akış**
 * **Sekme 1: Günlük Takip & Makrolar:** Cronometer entegrasyonu, kişiselleştirilebilir makro oranları (Dengeli %30 Yağ / %38 Karb, Düşük Yağ %25, Özel %), 7 günlük makro trend çizgileri ve Wegovy dozaj/bölge kayıtları.
 * **Sekme 2: 4 Öğünlü Akıllı Menü Planlayıcı & Doğrudan Tüketim Kaydı:**
   * Her öğün için 5'er kanıta dayalı tarif (toplam 20 tarif).
-  * **⏰ Sirkadiyen Antrenman & Besin Zamanlaması:** *Nature Communications (2025)* (14.689 katılımcı, $\ge 4$ saat kuralı) ve *Sleep Medicine Reviews (2026)* klinik verilerine göre optimize edilmiş 3 sirkadiyen protokol (Hafta İçi Erken Sabah 06:30, Hafta Sonu Gün İçi 11:30, Akşam Padel 18:30). Wegovy kaynaklı mide boşalma gecikmesine uygun aç karnına/sıvı pre-workout stratejisi ve anabolik toparlanma zamanlaması.
+  * **⏰ Sirkadiyen Zamanlama:** *Nature Communications (2025)* (14.689 katılımcı, $\ge 4$ saat kuralı) ve *Sleep Medicine Reviews (2026)* klinik verilerine göre optimize edilmiş 3 sirkadiyen protokol (Hafta İçi Erken Sabah 06:30, Hafta Sonu Gün İçi 11:30, Akşam Padel 18:30). Wegovy kaynaklı mide boşalma gecikmesine uygun aç karnına/sıvı pre-workout stratejisi ve anabolik toparlanma zamanlaması.
   * **Cronometer'sız Doğrudan Tüketim Kaydı:** Seçilen menü tek tıkla **"💾 Günün Beslenmesini Uygulamaya Kaydet"** butonuyla doğrudan sisteme ve `data` branch'ine kalıcı yazılır.
   * **2 Kademeli Takviye ve Maden Suyu Takibi:** Sabah, Öğle/Padel, Gece rutinleri ve semptomatik takviyeler için günlük interaktif onay kutuları.
   * **WhatsApp Menü Export:** Sirkadiyen zamanlama ve antrenman moduna duyarlı, akşamdan eşe gönderilebilen kopyalanabilir hazır format.

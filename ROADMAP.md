@@ -71,7 +71,7 @@ ATES FAM Fitness; kilo verme sürecinde kas kaybını (**sarkopeni**) önleyen, 
     - **Halsizlik / Bağışıklık Riski:** Ocean C Vitamini 1000 mg + Bioflavonoid (1 tb) — kırgınlık başlangıcında destek.
 - [x] Her öğün kartında rozet ayrımı (`🟢 Temel` vs `🟡 İhtiyaçta`).
 - [x] Günlük interaktif takviye & maden suyu takip kutucukları ve kalıcı kayıt (`supplements_log`).
-- [x] **⏰ Sirkadiyen Antrenman & Besin Zamanlaması Modülü:** *Nature Communications (2025)* (14.689 katılımcı, $\ge 4$ saat kuralı) ve *Sleep Medicine Reviews (2026)* verileriyle 3 protokol (Hafta İçi Erken Sabah 06:30, Hafta Sonu Gün İçi 11:30, Akşam Padel 18:30). Wegovy mide boşalma gecikmesine uygun aç karnına/sıvı pre-workout stratejisi ve anabolik toparlanma zamanlaması.
+- [x] **⏰ Sirkadiyen Zamanlama Modülü:** *Nature Communications (2025)* (14.689 katılımcı, $\ge 4$ saat kuralı) ve *Sleep Medicine Reviews (2026)* verileriyle 3 protokol (Hafta İçi Erken Sabah 06:30, Hafta Sonu Gün İçi 11:30, Akşam Padel 18:30). Wegovy mide boşalma gecikmesine uygun aç karnına/sıvı pre-workout stratejisi ve anabolik toparlanma zamanlaması.
 - [x] WhatsApp günlük menü çıktısına 2 kademeli protokol ve sirkadiyen zamanlama formatının estetik entegrasyonu.
 - [x] 122/122 tam yeşil test paketi ve Doküman/Kapsam Bekçileri (`test_doc_and_scope_guard.py`).
 
