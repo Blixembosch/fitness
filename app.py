@@ -2341,6 +2341,65 @@ def _render_meal_planner():
             S["supplements_log"][today_iso] = new_sup_state
             _save()
 
+    # Circadian Workout & Meal Timing Protocol (Nature Communications 2025 & Sleep Medicine Reviews 2026)
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(
+            "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px'>"
+            "<div style='display:flex;align-items:center;gap:8px'>"
+            "<span style='font-size:18px'>⏰</span>"
+            "<span style='font-family:Nunito;font-weight:900;font-size:14.5px;color:var(--fg)'>Sirkadiyen Antrenman & Besin Zamanlaması</span>"
+            "</div>"
+            "<div style='font-size:11px;background:rgba(56,152,255,0.15);color:var(--blue);padding:3px 9px;border-radius:12px;font-weight:700'>🔬 Nature & Sleep Med Rev Klinik Kanıtı</div>"
+            "</div>"
+            "<div style='font-size:12px;color:var(--muted);margin-bottom:12px'>"
+            "<i>Nature Communications (2025)</i> ve <i>Sleep Medicine Reviews (2026)</i> meta-analizlerine göre; antrenman ve besin zamanlaması gece istirahat nabzını, HRV'yi ve derin uykuyu doğrudan etkiler. Yatmadan en az 4 saat önce eforu tamamlamak uyku mimarisini korur."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+
+        timing_keys = ["weekday", "weekend", "padel_evening"]
+        timing_labels = {
+            "weekday": "⚡ Hafta İçi: Sabah Erken Spor (06:30 – 07:45)",
+            "weekend": "☀️ Hafta Sonu: Gün İçi Spor (11:30 – 12:45)",
+            "padel_evening": "🎾 Akşam Padel Maçı (18:30 – 20:00)",
+        }
+
+        sel_timing_mode = st.radio(
+            "Gün Rutini & Antrenman Zamanı:",
+            timing_keys,
+            format_func=lambda k: timing_labels[k],
+            horizontal=True,
+            key="mp_circadian_timing_mode",
+        )
+
+        cur_proto = meal_planner.get_circadian_meal_timing(sel_timing_mode)
+
+        st.markdown(
+            f"<div style='background:rgba(56,152,255,0.06);border-left:3px solid var(--blue);padding:8px 12px;border-radius:6px;font-size:12px;color:var(--fg);margin-bottom:12px'>"
+            f"<b>💡 Sirkadiyen Rasyonel:</b> {cur_proto.get('rationale', '')}<br/>"
+            f"🏋️ <b>Antrenman:</b> {cur_proto.get('workout_time', '')} &nbsp;·&nbsp; 💧 <b>Antrenman Öncesi:</b> {cur_proto.get('pre_workout', '')} &nbsp;·&nbsp; 🌙 <b>Hedef Uyku:</b> {cur_proto.get('sleep_time', '')}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+        col_t1, col_t2, col_t3, col_t4 = st.columns(4, gap="small")
+        time_cols = [col_t1, col_t2, col_t3, col_t4]
+        for c, s_item in zip(time_cols, cur_proto.get("schedule", [])):
+            with c:
+                st.markdown(
+                    f"<div style='background:var(--surface-2);border-radius:10px;padding:10px;border:1px solid var(--line);min-height:165px;display:flex;flex-direction:column;justify-content:space-between'>"
+                    f"<div>"
+                    f"<div style='font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase'>{s_item.get('label', '')}</div>"
+                    f"<div style='font-size:12.5px;font-weight:900;color:var(--fg);margin:2px 0 4px'>⏰ {s_item.get('time', '')}</div>"
+                    f"<div style='background:rgba(52,211,153,0.12);color:var(--green);font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:6px;display:inline-block;margin-bottom:6px'>🎯 {s_item.get('role', '')}</div>"
+                    f"<div style='font-size:11px;color:var(--muted);line-height:1.35'>{s_item.get('desc', '')}</div>"
+                    f"</div>"
+                    f"<div style='font-size:10px;color:var(--orange);margin-top:6px;font-weight:600'>💊 {s_item.get('sups', '')}</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown(
@@ -2353,7 +2412,16 @@ def _render_meal_planner():
             "</div>",
             unsafe_allow_html=True,
         )
-        wa_text = meal_planner.format_whatsapp_daily_plan(S["meal_planner"], day_label="Yarınki")
+        col_wa1, col_wa2 = st.columns([1.5, 2.5], gap="medium")
+        with col_wa1:
+            wa_timing_mode = st.selectbox(
+                "WhatsApp Zamanlama Formatı",
+                timing_keys,
+                index=timing_keys.index(sel_timing_mode) if sel_timing_mode in timing_keys else 0,
+                format_func=lambda k: timing_labels[k],
+                key="mp_wa_timing_mode",
+            )
+        wa_text = meal_planner.format_whatsapp_daily_plan(S["meal_planner"], day_label="Yarınki", timing_mode=wa_timing_mode)
         st.code(wa_text, language="markdown")
         st.caption("📋 Yukarıdaki kutucuğun sağ üst köşesindeki kopyalama simgesine tıklayarak WhatsApp'a doğrudan yapıştırabilirsin.")
 

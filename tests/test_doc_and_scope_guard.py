@@ -34,10 +34,10 @@ def test_document_guard_readme():
     assert "GitHub Data Branch" in content
     assert "ROADMAP.md" in content
 
-    # Test count must be synchronized to 121
+    # Test count must be synchronized to 122
     match = re.search(r"(\d+)\s+otomatik\s+birim", content)
     assert match is not None, "README.md must mention automated test count"
-    assert int(match.group(1)) == 121, f"README.md test count ({match.group(1)}) must match total suite count (121)"
+    assert int(match.group(1)) == 122, f"README.md test count ({match.group(1)}) must match total suite count (122)"
 
 
 def test_document_guard_roadmap():
@@ -55,7 +55,7 @@ def test_document_guard_roadmap():
     assert "Aktif Sprint" in content
     assert "Gelecek Yol Haritası" in content
     assert "Kalite Güvencesi ve Bekçi Mekanizması" in content
-    assert "121" in content, "ROADMAP.md must mention 121 automated tests"
+    assert "122" in content, "ROADMAP.md must mention 122 automated tests"
 
 
 def test_scope_guard_invariants():
@@ -104,9 +104,17 @@ def test_scope_guard_invariants():
     somon = meal_planner.lookup_food_macros("somon", grams=150)
     assert somon is not None and somon["protein"] > 25.0
 
+    # 6. Circadian workout & meal timing protocols (Nature 2025 & Sleep Med Rev 2026)
+    ct = meal_planner.CIRCADIAN_MEAL_TIMING
+    assert "weekday" in ct and "weekend" in ct and "padel_evening" in ct
+    for mode in ("weekday", "weekend", "padel_evening"):
+        proto = ct[mode]
+        assert "workout_time" in proto and "pre_workout" in proto and "schedule" in proto and "sleep_time" in proto
+        assert len(proto["schedule"]) == 4
+
 
 def test_progression_to_regression_auto_expansion():
-    """Verify that all test files in tests/ are discovered and total test count equals 121."""
+    """Verify that all test files in tests/ are discovered and total test count equals 122."""
     test_files = sorted(glob.glob(str(WORKSPACE_DIR / "tests" / "test_*.py")))
     assert len(test_files) >= 12, f"Expected at least 12 test files, found {len(test_files)}"
 
@@ -121,7 +129,7 @@ def test_progression_to_regression_auto_expansion():
         ]
         total_test_functions += len(funcs)
 
-    assert total_test_functions == 121, (
-        f"Total test suite count is {total_test_functions}, expected 121. "
+    assert total_test_functions == 122, (
+        f"Total test suite count is {total_test_functions}, expected 122. "
         f"When adding new tests, update README.md, ROADMAP.md, and this guard together!"
     )

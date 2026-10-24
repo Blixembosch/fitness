@@ -890,7 +890,146 @@ def get_meal_supplements(meal_key: str) -> list[dict]:
     return [s for s in SUPPLEMENT_PROTOCOL if s["meal"] == meal_key]
 
 
-def format_whatsapp_daily_plan(selected_ids: dict[str, str], day_label: str = "Yarınki") -> str:
+CIRCADIAN_MEAL_TIMING: dict[str, dict] = {
+    "weekday": {
+        "title": "⚡ Hafta İçi: Sabah Erken Spor Rutini (06:30 – 07:45)",
+        "badge": "Sabah Erken Spor",
+        "rationale": "Nature Communications (2025) ve Sleep Med Rev (2026) verilerine göre; sabah erken yapılan yüksek yoğunluklu direnç/kardiyo antrenmanı gece istirahat nabzını düşürür, HRV'yi artırır ve gece uyanmalarını (WASO) önler.",
+        "workout_time": "06:30 – 07:45",
+        "pre_workout": "06:15 · 1 bardak su + maden suyu / elektrolit + sade espresso / filtre kahve. (Wegovy gecikmiş mide boşalması nedeniyle katı gıda alınmaz; reflü ve bulantıyı engeller).",
+        "schedule": [
+            {
+                "meal": "breakfast",
+                "label": "1. KAHVALTI",
+                "time": "08:00 – 08:30",
+                "role": "Post-Workout Anabolik Pencere",
+                "desc": "Kas protein sentezi (MPS) ve boşalan kas glikojenini doldurmak için günün en kritik öğünü. 40g Protein + Kompleks Karbonhidrat.",
+                "sups": "Ocean Multivitamin (1 tb) + Ocean D3 Sprey (2 puff)",
+            },
+            {
+                "meal": "lunch",
+                "label": "2. ÖĞLE YEMEĞİ",
+                "time": "12:30 – 13:30",
+                "role": "Dengeli İş Günü Öğünü",
+                "desc": "35-40g Yağsız Protein + Taze Sebzeler & Sağlıklı Yağlar.",
+                "sups": "Gerekirse ağır öğün sonrası Bromelain",
+            },
+            {
+                "meal": "snack",
+                "label": "3. ARA ÖĞÜN",
+                "time": "16:30 – 17:00",
+                "role": "İkindi Enerji & Elektrolit Desteği",
+                "desc": "Protein Shake / AH Kwark / Hüttenkäse + 1 şişe Avoya Sert İçim (200 ml) maden suyu.",
+                "sups": "Avoya Sert İçim / AH Sade Soda (Sodyum, Bikarbonat, Magnezyum)",
+            },
+            {
+                "meal": "dinner",
+                "label": "4. AKŞAM YEMEĞİ",
+                "time": "19:30 – 20:15",
+                "role": "Hafif Akşam & Uyku Hazırlığı",
+                "desc": "Sindirimi kolay yağsız protein + lif zengini sebzeler. Yatağa gitmeden en az 3 saat önce tamamlanır.",
+                "sups": "Yatmadan 30 dk önce: Orzax ExtraMag Üçlü Magnezyum (1 tb)",
+            },
+        ],
+        "sleep_time": "22:45 – 23:15 (Derin Uyku & Toparlanma)",
+    },
+    "weekend": {
+        "title": "☀️ Hafta Sonu: Gün İçi Spor Rutini (11:30 – 13:00 veya 14:00 – 15:30)",
+        "badge": "Gün İçi Spor",
+        "rationale": "Hafta sonu dinlenmiş sinir sistemiyle gün ortasında mekanik tepe kuvvet çıktısı sağlanır. Antrenman yatmadan 9-10 saat önce bittiği için uyku mimarisi mükemmel korunur.",
+        "workout_time": "11:30 – 12:45",
+        "pre_workout": "11:15 · Su + Maden suyu desteği.",
+        "schedule": [
+            {
+                "meal": "breakfast",
+                "label": "1. KAHVALTI",
+                "time": "09:00 – 09:30",
+                "role": "Pre-Workout Yakıt Öğünü",
+                "desc": "Antrenmandan 2 saat önce tamamlanan proteinli yulaf lapası veya omlet; sporda stabil kan şekeri ve enerji sağlar.",
+                "sups": "Ocean Multivitamin (1 tb) + Ocean D3 Sprey (2 puff)",
+            },
+            {
+                "meal": "lunch",
+                "label": "2. ÖĞLE YEMEĞİ",
+                "time": "13:15 – 14:00",
+                "role": "Post-Workout Anabolik Toparlanma",
+                "desc": "Hafta sonu antrenmanı sonrası glikojen ve kas onarım merkezi! 40-45g Tavuk/Hindi/Balık + Pirinç/Bulgur/Patates.",
+                "sups": "Avoya Sert İçim (200 ml) veya AH Sade Soda",
+            },
+            {
+                "meal": "snack",
+                "label": "3. ARA ÖĞÜN",
+                "time": "16:30 – 17:15",
+                "role": "Hafta Sonu Keyif & Protein",
+                "desc": "AH Protein Mousse / Puding veya Meyveli Kwark.",
+                "sups": "İhtiyaç halinde C Vitamini 1000 mg",
+            },
+            {
+                "meal": "dinner",
+                "label": "4. AKŞAM YEMEĞİ",
+                "time": "19:30 – 20:30",
+                "role": "Hafif Aile Akşamı",
+                "desc": "Dengeli taze protein + salata/sebze garnitür.",
+                "sups": "Yatmadan: Orzax ExtraMag Üçlü Magnezyum (1 tb)",
+            },
+        ],
+        "sleep_time": "23:00 – 23:30 (Parasempatik Yenilenme)",
+    },
+    "padel_evening": {
+        "title": "🎾 Akşam Padel Maçı Olan Günler (18:30 – 20:00)",
+        "badge": "Akşam Padel",
+        "rationale": "Nature Communications (2025) kuralı: Yüksek nabızlı efor yatmadan en az 3-4 saat önce tamamlanmalıdır. 20:00'de biten maç sonrası uyku en erken 23:30 - 24:00 olmalıdır.",
+        "workout_time": "18:30 – 20:00 (Padel Maçı)",
+        "pre_workout": "17:30 · 1 muz + 1 şişe Avoya maden suyu (sodyum/kramp önleme).",
+        "schedule": [
+            {
+                "meal": "breakfast",
+                "label": "1. KAHVALTI",
+                "time": "08:30 – 09:00",
+                "role": "Gün Başlangıç Öğünü",
+                "desc": "Dengeli 35-40g protein + kompleks karb.",
+                "sups": "Ocean Multivitamin (1 tb) + Ocean D3 Sprey (2 puff)",
+            },
+            {
+                "meal": "lunch",
+                "label": "2. ÖĞLE YEMEĞİ",
+                "time": "12:30 – 13:30",
+                "role": "Pre-Padel Temel Yakıt",
+                "desc": "Maç için kas depolarını dolduran temiz karbonhidrat (pirinç/bulgur) + tavuk/hindi.",
+                "sups": "Su desteği",
+            },
+            {
+                "meal": "snack",
+                "label": "3. ARA ÖĞÜN",
+                "time": "17:15 – 17:30",
+                "role": "Maç Öncesi Hızlı Enerji & Elektrolit",
+                "desc": "1 Muz + Avoya Maden Suyu (200 ml sodyum takviyesi).",
+                "sups": "Avoya Sert İçim (Sodyum & bikarbonat - kramplara karşı)",
+            },
+            {
+                "meal": "dinner",
+                "label": "4. AKŞAM YEMEĞİ",
+                "time": "20:45 – 21:15",
+                "role": "Post-Padel Hızlı & Hafif Onarım",
+                "desc": "Geç saat olduğu için mideyi doldurmayan hafif protein: AH Magere Kwark kasesi veya protein shake + hafif salata.",
+                "sups": "Yatmadan (23:30): Orzax ExtraMag Magnezyum (1 tb) + ılık duş (parasempatik gevşeme).",
+            },
+        ],
+        "sleep_time": "23:45 – 00:15 (Minimum 3.5 saat sonra)",
+    },
+}
+
+
+def get_circadian_meal_timing(mode: str = "weekday") -> dict:
+    """Return the evidence-based circadian meal timing protocol (Nature Communications 2025 & Sleep Med Rev 2026)."""
+    return CIRCADIAN_MEAL_TIMING.get(mode, CIRCADIAN_MEAL_TIMING["weekday"])
+
+
+def format_whatsapp_daily_plan(
+    selected_ids: dict[str, str],
+    day_label: str = "Yarınki",
+    timing_mode: str = "weekday",
+) -> str:
     """Generate an aesthetic, spouse-friendly WhatsApp message detailing tomorrow's planned menu."""
     totals = calculate_menu_totals(selected_ids)
     items = totals["items"]
@@ -904,19 +1043,36 @@ def format_whatsapp_daily_plan(selected_ids: dict[str, str], day_label: str = "Y
     s_ing = ", ".join(s.get("ingredients", [])[:3])
     d_ing = ", ".join(d.get("ingredients", [])[:3])
 
+    timing_proto = get_circadian_meal_timing(timing_mode)
+    timing_map = {item["meal"]: item for item in timing_proto.get("schedule", [])}
+
+    b_time = f" ({timing_map['breakfast']['time']} · {timing_map['breakfast']['role']})" if "breakfast" in timing_map else ""
+    l_time = f" ({timing_map['lunch']['time']} · {timing_map['lunch']['role']})" if "lunch" in timing_map else ""
+    s_time = f" ({timing_map['snack']['time']} · {timing_map['snack']['role']})" if "snack" in timing_map else ""
+    d_time = f" ({timing_map['dinner']['time']} · {timing_map['dinner']['role']})" if "dinner" in timing_map else ""
+
+    pre_workout_block = ""
+    if timing_proto.get("pre_workout"):
+        pre_workout_block = (
+            f"⚡ *SPOR & SİRKADİYEN ZAMANLAMA ({timing_proto.get('badge', '')}):*\n"
+            f"  🏋️ *Antrenman Saati:* {timing_proto.get('workout_time', '')}\n"
+            f"  💧 *Antrenman Öncesi:* {timing_proto.get('pre_workout', '')}\n\n"
+        )
+
     msg = (
         f"🥗 *ATES FAM Fitness — {day_label} Beslenme Menüm*\n"
         f"🎯 *Günlük Makro Hedefi:* {totals['kcal']} kcal | 🥩 {totals['protein']:.0f}g Protein | 🥑 {totals['fat']:.0f}g Yağ | 🍚 {totals['carbs']:.0f}g Karb | 🥦 {totals['fiber']:.0f}g Lif\n\n"
-        f"🍳 *1. KAHVALTI:* {b.get('name', '')}\n"
+        f"{pre_workout_block}"
+        f"🍳 *1. KAHVALTI{b_time}:* {b.get('name', '')}\n"
         f"👉 _{b_ing}_\n"
         f"📊 {b.get('kcal')} kcal · {b.get('protein'):.0f}g Protein · {b.get('carbs'):.0f}g Karb · {b.get('fat'):.0f}g Yağ · {b.get('fiber'):.0f}g Lif\n\n"
-        f"🥗 *2. ÖĞLE YEMEĞİ:* {l.get('name', '')}\n"
+        f"🥗 *2. ÖĞLE YEMEĞİ{l_time}:* {l.get('name', '')}\n"
         f"👉 _{l_ing}_\n"
         f"📊 {l.get('kcal')} kcal · {l.get('protein'):.0f}g Protein · {l.get('carbs'):.0f}g Karb · {l.get('fat'):.0f}g Yağ · {l.get('fiber'):.0f}g Lif\n\n"
-        f"🥤 *3. ARA ÖĞÜN / SHAKE:* {s.get('name', '')}\n"
+        f"🥤 *3. ARA ÖĞÜN / SHAKE{s_time}:* {s.get('name', '')}\n"
         f"👉 _{s_ing}_\n"
         f"📊 {s.get('kcal')} kcal · {s.get('protein'):.0f}g Protein · {s.get('carbs'):.0f}g Karb · {s.get('fat'):.0f}g Yağ · {s.get('fiber'):.0f}g Lif\n\n"
-        f"🍲 *4. AKŞAM YEMEĞİ:* {d.get('name', '')}\n"
+        f"🍲 *4. AKŞAM YEMEĞİ{d_time}:* {d.get('name', '')}\n"
         f"👉 _{d_ing}_\n"
         f"📊 {d.get('kcal')} kcal · {d.get('protein'):.0f}g Protein · {d.get('carbs'):.0f}g Karb · {d.get('fat'):.0f}g Yağ · {d.get('fiber'):.0f}g Lif\n\n"
         f"💊 *GÜNLÜK TAKVİYE & ELEKTROLİT PROTOKOLÜ:*\n"

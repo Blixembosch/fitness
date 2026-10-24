@@ -211,4 +211,42 @@ def test_supplement_tiers_and_mineral_water():
     assert any("Soda" in n for n in p_names)
 
 
+def test_circadian_meal_timing_protocols():
+    """Verify evidence-based circadian meal and workout timing protocols (Nature 2025 & Sleep Med Rev 2026)."""
+    # 1. Weekday morning workout protocol
+    wd = mp.get_circadian_meal_timing("weekday")
+    assert "06:30" in wd["workout_time"]
+    assert "Wegovy" in wd["pre_workout"] or "katı gıda" in wd["pre_workout"]
+    assert len(wd["schedule"]) == 4
+    roles = {item["meal"]: item["role"] for item in wd["schedule"]}
+    assert "Post-Workout" in roles["breakfast"]
+    assert "22:45" in wd["sleep_time"]
+
+    # 2. Weekend daytime workout protocol
+    we = mp.get_circadian_meal_timing("weekend")
+    assert "11:30" in we["workout_time"]
+    we_roles = {item["meal"]: item["role"] for item in we["schedule"]}
+    assert "Pre-Workout" in we_roles["breakfast"]
+    assert "Post-Workout" in we_roles["lunch"]
+
+    # 3. Padel evening protocol (>= 3-4 hours sleep buffer)
+    pd = mp.get_circadian_meal_timing("padel_evening")
+    assert "Padel" in pd["workout_time"]
+    assert "23:45" in pd["sleep_time"]
+
+    # 4. WhatsApp export includes circadian headers & badges
+    sample = {"breakfast": "b1", "lunch": "l1", "snack": "s1", "dinner": "d1"}
+    msg_wd = mp.format_whatsapp_daily_plan(sample, "Pazartesi", timing_mode="weekday")
+    assert "SPOR & SİRKADİYEN ZAMANLAMA" in msg_wd
+    assert "06:30 – 07:45" in msg_wd
+    assert "Post-Workout Anabolik Pencere" in msg_wd
+
+    msg_we = mp.format_whatsapp_daily_plan(sample, "Cumartesi", timing_mode="weekend")
+    assert "SPOR & SİRKADİYEN ZAMANLAMA" in msg_we
+    assert "Gün İçi Spor" in msg_we
+    assert "Pre-Workout Yakıt" in msg_we
+    assert "Post-Workout Anabolik" in msg_we
+
+
+
 

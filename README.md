@@ -2,7 +2,7 @@
 
 [![Python 3.14](https://img.shields.io/badge/Python-3.14-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.40+-FF4B4B.svg?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Quality Assurance](https://img.shields.io/badge/Tests-121%20Passed%20(100%25)-success.svg?logo=pytest&logoColor=white)](tests/)
+[![Quality Assurance](https://img.shields.io/badge/Tests-122%20Passed%20(100%25)-success.svg?logo=pytest&logoColor=white)](tests/)
 [![Architecture](https://img.shields.io/badge/Persistence-SQLite%20%2B%20GitHub%20Data%20Branch-blueviolet.svg)](https://github.com/Blixembosch/fitness/tree/data)
 [![Accessibility](https://img.shields.io/badge/WCAG-AA%2FAAA%20Compliant-green.svg)](tests/test_accessibility.py)
 [![License](https://img.shields.io/badge/Standard-ATES%20FAM%20Engineering-orange.svg)](ROADMAP.md)
@@ -137,9 +137,10 @@ Kas kütlesini azami derecede korumak için tasarlanmış **3 aşamalı akış**
 * **Sekme 1: Günlük Takip & Makrolar:** Cronometer entegrasyonu, kişiselleştirilebilir makro oranları (Dengeli %30 Yağ / %38 Karb, Düşük Yağ %25, Özel %), 7 günlük makro trend çizgileri ve Wegovy dozaj/bölge kayıtları.
 * **Sekme 2: 4 Öğünlü Akıllı Menü Planlayıcı & Doğrudan Tüketim Kaydı:**
   * Her öğün için 5'er kanıta dayalı tarif (toplam 20 tarif).
+  * **⏰ Sirkadiyen Antrenman & Besin Zamanlaması:** *Nature Communications (2025)* (14.689 katılımcı, $\ge 4$ saat kuralı) ve *Sleep Medicine Reviews (2026)* klinik verilerine göre optimize edilmiş 3 sirkadiyen protokol (Hafta İçi Erken Sabah 06:30, Hafta Sonu Gün İçi 11:30, Akşam Padel 18:30). Wegovy kaynaklı mide boşalma gecikmesine uygun aç karnına/sıvı pre-workout stratejisi ve anabolik toparlanma zamanlaması.
   * **Cronometer'sız Doğrudan Tüketim Kaydı:** Seçilen menü tek tıkla **"💾 Günün Beslenmesini Uygulamaya Kaydet"** butonuyla doğrudan sisteme ve `data` branch'ine kalıcı yazılır.
   * **2 Kademeli Takviye ve Maden Suyu Takibi:** Sabah, Öğle/Padel, Gece rutinleri ve semptomatik takviyeler için günlük interaktif onay kutuları.
-  * **WhatsApp Menü Export:** Akşamdan eşe gönderilebilen kopyalanabilir hazır format.
+  * **WhatsApp Menü Export:** Sirkadiyen zamanlama ve antrenman moduna duyarlı, akşamdan eşe gönderilebilen kopyalanabilir hazır format.
 * **Sekme 3: 7 Günlük Menü & Alışveriş Listesi:** Haftalık maç ve antrenmanlara göre dengelenmiş 7 günlük menü ve Albert Heijn reyonlarına göre gruplanmış otomatik alışveriş listesi.
 * **Sekme 4: Evdeki Ürünler & Akıllı Besin Bulucu:**
   * Evdeki 20 temel ürünün yerel kataloğu (`HOME_PRODUCT_LIBRARY`).
@@ -204,7 +205,7 @@ graph LR
 
 ## 🧪 Test ve Kalite Güvencesi
 
-Proje, 121 otomatik birim, erişilebilirlik, Plan-Antrenman akıllı yönlendirme, 4 öğünlü menü planlayıcı, 2 kademeli takviye & elektrolit protokolü (Temel Rutin & İhtiyaç Halinde), Doküman ve Kapsam Bekçileri (`tests/test_doc_and_scope_guard.py`) ve 5 sayfanın CSS/bileşen bütünlüğünü denetleyen Streamlit `AppTest` fonksiyonel testi ile korunur.
+Proje, 122 otomatik birim, erişilebilirlik, Plan-Antrenman akıllı yönlendirme, 4 öğünlü menü planlayıcı, sirkadiyen besin ve egzersiz zamanlaması, 2 kademeli takviye & elektrolit protokolü (Temel Rutin & İhtiyaç Halinde), Doküman ve Kapsam Bekçileri (`tests/test_doc_and_scope_guard.py`) ve 5 sayfanın CSS/bileşen bütünlüğünü denetleyen Streamlit `AppTest` fonksiyonel testi ile korunur.
 
 ### Test Paketi Özeti
 
@@ -216,11 +217,11 @@ Proje, 121 otomatik birim, erişilebilirlik, Plan-Antrenman akıllı yönlendirm
 | [`tests/test_metrics.py`](file:///Users/anilates/Library/CloudStorage/OneDrive-Personal/Documents/AI%20Booster%20Dashboards/ATES_FAM_Fitness/tests/test_metrics.py) | Haftalık kilo kaybı yüzdesi, trend hesaplama, güvenlik uyarıları | 10 |
 | [`tests/test_calendar_sync.py`](file:///Users/anilates/Library/CloudStorage/OneDrive-Personal/Documents/AI%20Booster%20Dashboards/ATES_FAM_Fitness/tests/test_calendar_sync.py) | iCal ayrıştırma, çocuk dersi filtreleme, Padel eşleme motoru | 9 |
 | [`tests/test_nutrition.py`](file:///Users/anilates/Library/CloudStorage/OneDrive-Personal/Documents/AI%20Booster%20Dashboards/ATES_FAM_Fitness/tests/test_nutrition.py) | Cronometer CSV ayrıştırma, makro hesaplama, doğrudan günlük tüketim kaydı | 15 |
-| [`tests/test_meal_planner.py`](file:///Users/anilates/Library/CloudStorage/OneDrive-Personal/Documents/AI%20Booster%20Dashboards/ATES_FAM_Fitness/tests/test_meal_planner.py) | 4 öğünlü menü, 2 kademeli takviye protokolü, Avoya maden suyu, besin bulucu | 13 |
+| [`tests/test_meal_planner.py`](file:///Users/anilates/Library/CloudStorage/OneDrive-Personal/Documents/AI%20Booster%20Dashboards/ATES_FAM_Fitness/tests/test_meal_planner.py) | 4 öğünlü menü, sirkadiyen antrenman & besin zamanlaması, 2 kademeli takviye protokolü, Avoya maden suyu, besin bulucu | 14 |
 | [`tests/test_accessibility.py`](file:///Users/anilates/Library/CloudStorage/OneDrive-Personal/Documents/AI%20Booster%20Dashboards/ATES_FAM_Fitness/tests/test_accessibility.py) | WCAG AA/AAA kontrast denetimi, CSS selector güvenliği, HTML leak kontrolü | 8 |
 | [`tests/test_apptest.py`](file:///Users/anilates/Library/CloudStorage/OneDrive-Personal/Documents/AI%20Booster%20Dashboards/ATES_FAM_Fitness/tests/test_apptest.py) | Streamlit `AppTest` ile 5 sayfanın uçtan uca render ve etkileşim testi | 25 |
 | [`tests/test_doc_and_scope_guard.py`](file:///Users/anilates/Library/CloudStorage/OneDrive-Personal/Documents/AI%20Booster%20Dashboards/ATES_FAM_Fitness/tests/test_doc_and_scope_guard.py) | Doküman senkronizasyonu, invariant bekçileri, otomatik regresyon genişlemesi | 4 |
-| **Toplam** | **Tüm testler %100 yeşil** | **121** |
+| **Toplam** | **Tüm testler %100 yeşil** | **122** |
 
 Test paketini çalıştırmak için:
 ```bash
@@ -234,7 +235,7 @@ Test paketini çalıştırmak için:
 ```text
 ATES_FAM_Fitness/
 ├── app.py                         # Ana Streamlit uygulama giriş noktası ve UI render katmanı
-├── run_tests.py                   # Bağımsız test koşucusu (121 test)
+├── run_tests.py                   # Bağımsız test koşucusu (122 test)
 ├── requirements.txt               # Üretim bağımlılıkları (Streamlit, Pandas, Requests vb.)
 ├── README.md                      # Kapsamlı teknik dokümantasyon
 ├── ROADMAP.md                     # Ürün vizyonu, sürüm geçmişi ve kilometre taşları

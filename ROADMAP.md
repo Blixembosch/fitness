@@ -4,7 +4,7 @@
 > **Hedef:** Wegovy (GLP-1) protokolünde kas kütlesini koruma/artırma, yağ yakımı, padel performansı ve metabolik sağlık  
 > **Teknoloji:** Python 3.14 · Streamlit · SQLite (`data/fitness.db`) · GitHub Data Branch (`Blixembosch/fitness:data`)  
 > **Resmi Başlangıç:** 25 Ekim 2026 (Pazar) · **İlk Wegovy Dozu:** 27 Ekim 2026 (Salı)  
-> **Kalite Güvencesi:** 121 Otomatik Test (%100 Yeşil) · Doküman & Kapsam Bekçileri (Guards)
+> **Kalite Güvencesi:** 122 Otomatik Test (%100 Yeşil) · Doküman & Kapsam Bekçileri (Guards)
 
 ---
 
@@ -71,8 +71,9 @@ ATES FAM Fitness; kilo verme sürecinde kas kaybını (**sarkopeni**) önleyen, 
     - **Halsizlik / Bağışıklık Riski:** Ocean C Vitamini 1000 mg + Bioflavonoid (1 tb) — kırgınlık başlangıcında destek.
 - [x] Her öğün kartında rozet ayrımı (`🟢 Temel` vs `🟡 İhtiyaçta`).
 - [x] Günlük interaktif takviye & maden suyu takip kutucukları ve kalıcı kayıt (`supplements_log`).
-- [x] WhatsApp günlük menü çıktısına 2 kademeli protokolün estetik entegrasyonu.
-- [x] 121/121 tam yeşil test paketi ve Doküman/Kapsam Bekçileri (`test_doc_and_scope_guard.py`).
+- [x] **⏰ Sirkadiyen Antrenman & Besin Zamanlaması Modülü:** *Nature Communications (2025)* (14.689 katılımcı, $\ge 4$ saat kuralı) ve *Sleep Medicine Reviews (2026)* verileriyle 3 protokol (Hafta İçi Erken Sabah 06:30, Hafta Sonu Gün İçi 11:30, Akşam Padel 18:30). Wegovy mide boşalma gecikmesine uygun aç karnına/sıvı pre-workout stratejisi ve anabolik toparlanma zamanlaması.
+- [x] WhatsApp günlük menü çıktısına 2 kademeli protokol ve sirkadiyen zamanlama formatının estetik entegrasyonu.
+- [x] 122/122 tam yeşil test paketi ve Doküman/Kapsam Bekçileri (`test_doc_and_scope_guard.py`).
 
 ---
 
@@ -124,7 +125,7 @@ ATES FAM Fitness; kilo verme sürecinde kas kaybını (**sarkopeni**) önleyen, 
 
 Proje, regresyonu ve kapsam sapmasını önleyen **4 koruma katmanıyla** çalışır:
 
-1. **Birim & Fonksiyonel Testler (Aktif — 117 Test):** Cronometer ayrıştırma, takvim filtreleme, makro hesaplayıcı, WCAG kontrastı ve tüm Streamlit sayfalarının `AppTest` kontrolü.
-2. **Kapsam Bekçisi (`Scope Guard` — Aktif):** `PERSIST_KEYS` (12 kalıcı anahtar), `HOME_PRODUCT_LIBRARY`, 6 parçalı `SUPPLEMENT_PROTOCOL` ve 20 tarifli `MEAL_DATABASE` gibi çekirdek bileşenlerin eksiksizliğini doğrular.
-3. **Doküman Bekçisi (`Document Guard` — Aktif):** `README.md` ve `ROADMAP.md` dosyalarındaki test sayılarının (121), mimari açıklamaların ve entegrasyon bilgilerinin kodla %100 senkronize olduğunu teyit eder.
-4. **Progression-to-Regression Otomasyonu (Aktif — Otomatik Genişleyen):** Yazılan her yeni test `run_tests.py` tarafından anında keşfedilir, dinamik olarak sayılır ve bir sonraki güncellemede zorunlu bir regresyon testine dönüşür. Toplam test paketi şu anda **121/121 yeşil** olarak kilitlenmiştir.
+1. **Birim & Fonksiyonel Testler (Aktif — 118 Test):** Cronometer ayrıştırma, takvim filtreleme, makro hesaplayıcı, WCAG kontrastı ve tüm Streamlit sayfalarının `AppTest` kontrolü.
+2. **Kapsam Bekçisi (`Scope Guard` — Aktif):** `PERSIST_KEYS` (12 kalıcı anahtar), `HOME_PRODUCT_LIBRARY`, 6 parçalı `SUPPLEMENT_PROTOCOL`, 3 parçalı `CIRCADIAN_MEAL_TIMING` ve 20 tarifli `MEAL_DATABASE` gibi çekirdek bileşenlerin eksiksizliğini doğrular.
+3. **Doküman Bekçisi (`Document Guard` — Aktif):** `README.md` ve `ROADMAP.md` dosyalarındaki test sayılarının (122), mimari açıklamaların ve entegrasyon bilgilerinin kodla %100 senkronize olduğunu teyit eder.
+4. **Progression-to-Regression Otomasyonu (Aktif — Otomatik Genişleyen):** Yazılan her yeni test `run_tests.py` tarafından anında keşfedilir, dinamik olarak sayılır ve bir sonraki güncellemede zorunlu bir regresyon testine dönüşür. Toplam test paketi şu anda **122/122 yeşil** olarak kilitlenmiştir.
