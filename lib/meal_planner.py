@@ -232,9 +232,13 @@ HOME_PRODUCT_LIBRARY: list[dict] = [
 ]
 
 
-def get_home_products() -> list[dict]:
-    """Return the curated library of home and Dutch supermarket staple products."""
-    return HOME_PRODUCT_LIBRARY
+def get_home_products(custom_products: list[dict] | None = None) -> list[dict]:
+    """Return the curated library of home and Dutch supermarket staple products,
+    optionally augmented with user-defined custom foods."""
+    base = [dict(p) for p in HOME_PRODUCT_LIBRARY]
+    if custom_products:
+        base.extend([dict(p) for p in custom_products])
+    return base
 
 
 MEAL_DATABASE: dict[str, list[dict]] = {

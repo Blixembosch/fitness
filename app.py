@@ -2294,21 +2294,83 @@ def _render_weekly_grocery():
             "</div>",
             unsafe_allow_html=True,
         )
-        products = meal_planner.get_home_products()
+        custom_prods = S.get("custom_products", [])
+        products = meal_planner.get_home_products(custom_prods)
         prod_rows = []
         for p in products:
             prod_rows.append({
-                "Ürün": p["name"],
-                "Kategori": p["category"],
-                "Porsiyon": p["portion"],
-                "Kalori (kcal)": p["kcal"],
-                "Protein (g)": p["protein"],
-                "Yağ (g)": p["fat"],
-                "Karb (g)": p["carbs"],
-                "Lif (g)": p["fiber"],
-                "Not": p["notes"],
+                "Ürün": p.get("name", ""),
+                "Kategori": p.get("category", "Genel"),
+                "Porsiyon": p.get("portion", "100g"),
+                "Kalori (kcal)": p.get("kcal", 0),
+                "Protein (g)": p.get("protein", 0.0),
+                "Yağ (g)": p.get("fat", 0.0),
+                "Karb (g)": p.get("carbs", 0.0),
+                "Lif (g)": p.get("fiber", 0.0),
+                "Not": p.get("notes", ""),
             })
         st.dataframe(pd.DataFrame(prod_rows), use_container_width=True, hide_index=True)
+
+        with st.expander("➕ Kütüphaneye Yeni Ürün / Besin Ekle", expanded=False):
+            st.markdown(
+                "<div style='font-size:12.5px;color:var(--muted);margin-bottom:8px'>"
+                "Marketten veya dışarıdan aldığınız yeni bir gıdayı doğrudan buradan kaydedebilirsiniz. "
+                "Eklenen ürünler yerel veritabanına ve buluta anında kaydedilir."
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            c1, c2 = st.columns([2, 1])
+            new_name = c1.text_input("Ürün Adı", placeholder="örn. AH Zalmfilet (Somon)", key="new_prod_name")
+            new_cat = c2.selectbox(
+                "Kategori",
+                ["Et & Tavuk & Balık", "Süt & Yoğurt", "Peynir & Şarküteri", "Protein Tozu",
+                 "Tatlı & Mousse", "İçecek & Meal Replacement", "Fıstık Ezmesi & Kuruyemiş",
+                 "Yumurta & Kahvaltılık", "Tahıl & Karbonhidrat", "Sebze & Meyve", "Bakliyat", "Diğer"],
+                key="new_prod_cat",
+            )
+            c3, c4 = st.columns([1, 1])
+            new_portion = c3.text_input("Porsiyon / Gramaj Tanımı", value="100g", key="new_prod_portion")
+            new_notes = c4.text_input("Kullanım Notu (Opsiyonel)", placeholder="örn. Yüksek omega-3 ve protein", key="new_prod_notes")
+
+            m1, m2, m3, m4, m5 = st.columns(5)
+            new_kcal = m1.number_input("Kalori (kcal)", min_value=0, max_value=2000, value=150, step=5, key="new_prod_kcal")
+            new_p = m2.number_input("Protein (g)", min_value=0.0, max_value=200.0, value=20.0, step=0.5, key="new_prod_p")
+            new_f = m3.number_input("Yağ (g)", min_value=0.0, max_value=100.0, value=5.0, step=0.5, key="new_prod_f")
+            new_c = m4.number_input("Karb (g)", min_value=0.0, max_value=200.0, value=0.0, step=0.5, key="new_prod_c")
+            new_fib = m5.number_input("Lif (g)", min_value=0.0, max_value=50.0, value=0.0, step=0.5, key="new_prod_fib")
+
+            if st.button("💾 Ürünü Kütüphaneye Kaydet", type="primary", key="btn_save_custom_prod"):
+                if not new_name.strip():
+                    st.error("Lütfen geçerli bir ürün adı girin.")
+                else:
+                    item = {
+                        "name": new_name.strip(),
+                        "category": new_cat,
+                        "portion": new_portion.strip() or "100g",
+                        "kcal": int(new_kcal),
+                        "protein": float(new_p),
+                        "fat": float(new_f),
+                        "carbs": float(new_c),
+                        "fiber": float(new_fib),
+                        "notes": new_notes.strip(),
+                    }
+                    if "custom_products" not in S or not isinstance(S["custom_products"], list):
+                        S["custom_products"] = []
+                    S["custom_products"].append(item)
+                    _save()
+                    st.success(f"'{new_name.strip()}' kütüphaneye başarıyla eklendi ve kaydedildi!")
+                    st.rerun()
+
+        if custom_prods:
+            with st.expander("🗑 Eklediğiniz Özel Ürünleri Yönet / Sil", expanded=False):
+                for idx, cp in enumerate(list(custom_prods)):
+                    rc1, rc2 = st.columns([4, 1])
+                    rc1.markdown(f"**{cp.get('name', 'İsimsiz')}** ({cp.get('portion', '')}) — {cp.get('kcal', 0)} kcal, {cp.get('protein', 0)}g Protein")
+                    if rc2.button("Sil", key=f"del_cp_{idx}"):
+                        custom_prods.pop(idx)
+                        S["custom_products"] = custom_prods
+                        _save()
+                        st.rerun()
 
 
 def page_nutrition():

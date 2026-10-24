@@ -19,6 +19,7 @@ def test_sqlite_roundtrip_and_session_hydration(tmp_path=None):
         "active_kcal": {"2026-10-21": 520},
         "setlog": {"2026-10-21|lowerA|1760": 3},
         "loadlog": {"1760": 20.0},
+        "custom_products": [{"name": "Custom Somon", "kcal": 200, "protein": 20.0}],
         "nutrition": pd.DataFrame([{"date": "2026-10-21", "kcal": 2050.0, "protein": 165.0, "carbs": 160.0, "fat": 70.0, "fiber": 28.0}]),
     }
     store.persist_session(session1, db_path=db)
@@ -34,6 +35,7 @@ def test_sqlite_roundtrip_and_session_hydration(tmp_path=None):
         "active_kcal": {},
         "setlog": {},
         "loadlog": {},
+        "custom_products": [],
         "nutrition": None,
     }
     hydrated = store.hydrate_session(session2, db_path=db)
@@ -44,6 +46,7 @@ def test_sqlite_roundtrip_and_session_hydration(tmp_path=None):
     assert session2["weights"] == [{"date": "2026-10-21", "w": 99.8}]
     assert session2["setlog"]["2026-10-21|lowerA|1760"] == 3
     assert session2["loadlog"]["1760"] == 20.0
+    assert session2["custom_products"] == [{"name": "Custom Somon", "kcal": 200, "protein": 20.0}]
     assert isinstance(session2["nutrition"], pd.DataFrame) and len(session2["nutrition"]) == 1
 
 

@@ -38,6 +38,7 @@ PERSIST_KEYS = (
     "setlog",
     "loadlog",
     "settings",
+    "custom_products",
 )
 
 
@@ -374,7 +375,7 @@ def hydrate_session(session_state, db_path: Path | str | None = None, secrets=No
             merged_set = dict(session_state.get("settings", {}))
             merged_set.update(stored["settings"])
             session_state["settings"] = merged_set
-        for k in ("weights", "workouts", "padel", "cron_ex", "active_kcal", "setlog", "loadlog"):
+        for k in ("weights", "workouts", "padel", "cron_ex", "active_kcal", "setlog", "loadlog", "custom_products"):
             if k in stored and stored[k] is not None:
                 session_state[k] = stored[k]
         if "nutrition_rows" in stored and stored["nutrition_rows"]:

@@ -98,3 +98,23 @@ def test_home_product_library():
         assert "fiber" in p
 
 
+def test_get_home_products_with_custom():
+    custom = [
+        {
+            "name": "AH Zalmfilet",
+            "category": "Et & Tavuk & Balık",
+            "portion": "100g",
+            "kcal": 200,
+            "protein": 20.0,
+            "fat": 13.0,
+            "carbs": 0.0,
+            "fiber": 0.0,
+            "notes": "Omega-3",
+        }
+    ]
+    all_prods = mp.get_home_products(custom)
+    base_len = len(mp.HOME_PRODUCT_LIBRARY)
+    assert len(all_prods) == base_len + 1
+    assert all_prods[-1]["name"] == "AH Zalmfilet"
+
+
