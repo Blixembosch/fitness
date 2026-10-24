@@ -247,6 +247,20 @@ def test_circadian_meal_timing_protocols():
     assert "Pre-Workout Yakıt" in msg_we
     assert "Post-Workout Anabolik" in msg_we
 
+    # 5. Weekly timing schedule and smart menu generator for timings
+    assert len(mp.DEFAULT_WEEKLY_TIMING) == 7
+    assert mp.DEFAULT_WEEKLY_TIMING[0] == "weekday"
+    assert mp.DEFAULT_WEEKLY_TIMING[1] == "padel_evening"
+    assert mp.DEFAULT_WEEKLY_TIMING[5] == "weekend"
+
+    menu_wd = mp.get_smart_menu_for_timing("weekday")
+    assert menu_wd["breakfast"] in ("b1", "b4")
+    assert menu_wd["dinner"] in ("d1", "d2")
+
+    menu_pd = mp.get_smart_menu_for_timing("padel_evening")
+    assert menu_pd["snack"] in ("s2", "s4")
+
+
 
 
 

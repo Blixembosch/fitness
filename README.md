@@ -132,20 +132,19 @@ Kas kütlesini azami derecede korumak için tasarlanmış **3 aşamalı akış**
 2. **Adım 2..N-2 — Güç & Hipertrofi:** Temel bileşik hareketler (Göğüs Pres, Dumbbell Row, Squat, Omuz Pres, RDL). Ağırlık ve tekrar kayıtları (`setlog`, `loadlog`) ile progressive overload takibi.
 3. **Son 2 Adım — Su Küreği (10 dk) + Eliptik (10 dk) Metabolik Bitiriş:** Glikojen depoları ağırlıkla boşaldıktan sonra sırt, core ve bacak kaslarını çalıştıran Zone-2 yağ yakımı ve aktif laktat temizliği.
 
-### 4. Beslenme (`Nutrition, 4 Öğünlü Akıllı Menü & Kütüphane`)
-Üç ana sekmeden oluşan bütüncül beslenme yönetim merkezi:
-* **Sekme 1: Günlük Takip & Makrolar:** Cronometer entegrasyonu, kişiselleştirilebilir makro oranları (Dengeli %30 Yağ / %38 Karb, Düşük Yağ %25, Özel %), 7 günlük makro trend çizgileri ve Wegovy dozaj/bölge kayıtları.
-* **Sekme 2: 4 Öğünlü Akıllı Menü Planlayıcı & Doğrudan Tüketim Kaydı:**
-  * Her öğün için 5'er kanıta dayalı tarif (toplam 20 tarif).
-  * **⏰ Sirkadiyen Zamanlama:** *Nature Communications (2025)* (14.689 katılımcı, $\ge 4$ saat kuralı) ve *Sleep Medicine Reviews (2026)* klinik verilerine göre optimize edilmiş 3 sirkadiyen protokol (Hafta İçi Erken Sabah 06:30, Hafta Sonu Gün İçi 11:30, Akşam Padel 18:30). Wegovy kaynaklı mide boşalma gecikmesine uygun aç karnına/sıvı pre-workout stratejisi ve anabolik toparlanma zamanlaması.
+### 4. Beslenme (`Nutrition, Akıllı Menü & Alışveriş Listesi`)
+Üç ana sekmeden oluşan bütüncül, modern ve kartlı beslenme yönetim merkezi:
+* **Sekme 1: 🥗 Akıllı Menü (4 Öğünlü Akıllı Menü & Sirkadiyen Zamanlama):**
+  * **Haftalık Spor & Zamanlama Planlayıcı:** Hangi gün sabah erken kalkıp spor yapılacağı (06:30), hangi gün akşam padel oynanacağı veya gün ortasında antrenman yapılacağına önceden karar verme. Uygulama seçilen güne ve antrenman saatine göre öğün içeriklerini, anabolik toparlanma pencerelerini ve pre-workout kurallarını otomatik düzenler.
+  * **Kartlı ve Dinamik Tasarım:** Kalabalık veri setleri yerine; tek bakışta anlaşılan, makro hapları ve temel malzemeleri özetleyen ferah 4 öğün kartı.
   * **Cronometer'sız Doğrudan Tüketim Kaydı:** Seçilen menü tek tıkla **"💾 Günün Beslenmesini Uygulamaya Kaydet"** butonuyla doğrudan sisteme ve `data` branch'ine kalıcı yazılır.
   * **2 Kademeli Takviye ve Maden Suyu Takibi:** Sabah, Öğle/Padel, Gece rutinleri ve semptomatik takviyeler için günlük interaktif onay kutuları.
   * **WhatsApp Menü Export:** Sirkadiyen zamanlama ve antrenman moduna duyarlı, akşamdan eşe gönderilebilen kopyalanabilir hazır format.
-* **Sekme 3: 7 Günlük Menü & Alışveriş Listesi:** Haftalık maç ve antrenmanlara göre dengelenmiş 7 günlük menü ve Albert Heijn reyonlarına göre gruplanmış otomatik alışveriş listesi.
-* **Sekme 4: Evdeki Ürünler & Akıllı Besin Bulucu:**
-  * Evdeki 20 temel ürünün yerel kataloğu (`HOME_PRODUCT_LIBRARY`).
-  * **Akıllı Besin Bulucu:** Sadece ürün adı ve gramaj yazılarak çalışan, 0ms çevrimdışı katalog (`OFFLINE_STAPLE_FOODS`) ve Hollanda **Open Food Facts REST API** canlı sorgulama motoru.
-  * Özel ürün ekleme, anlık kütüphanede arama (`🔍 Kütüphanede Ara`), kategori filtresi, düzenleme (✏️) ve silme (🗑️).
+* **Sekme 2: 📊 Günlük Takip & Makrolar:** Cronometer entegrasyonu, canlı makro durum şeridi, kartlı Kilo & Tartım Takibi, Wegovy Enjeksiyon durumu ve titrasyon/hedef ayarları.
+* **Sekme 3: 🛒 Menü & Alışveriş Listesi (7 Günlük Menü & Alışveriş Listesi & Ürün Kütüphanesi):**
+  * **Kartlı 7 Günlük Plan:** Tıklamayı azaltan, 7 günün antrenman odağını ve 4 öğününü tek bakışta gösteren, 1 tıkla menüye aktarılabilir kart mimarisi.
+  * **Reyon Bazlı Alışveriş Listesi:** Albert Heijn reyonlarına göre gruplanmış otomatik alışveriş listesi ve WhatsApp paylaşımı.
+  * **Evdeki Ürünler & Akıllı Besin Bulucu:** 20 yerel temel ürün (`HOME_PRODUCT_LIBRARY`), 30+ çevrimdışı katalog (`OFFLINE_STAPLE_FOODS`) ve Hollanda **Open Food Facts REST API** canlı sorgulama motoru.
 
 ### 5. İstatistik (`Metrics & Biometrics Analytics`)
 * **Haftalık % Kilo Değişim Hızı:** Kas kaybı koruması (`sarcopenia guard`).

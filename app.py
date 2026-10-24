@@ -1932,7 +1932,7 @@ def page_stats():
 
 
 def _render_meal_planner():
-    st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🥗 Wegovy Uyumlu 4 Öğünlü Menü & Evdeki Malzemeler</div>", unsafe_allow_html=True)
+    st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🥗 Wegovy Uyumlu Akıllı Menü & Sirkadiyen Zamanlama</div>", unsafe_allow_html=True)
 
     t = S["targets"]
     st.markdown(
@@ -1941,50 +1941,81 @@ def _render_meal_planner():
         "<div><div style='font-family:Nunito;font-weight:900;font-size:15px;color:var(--fg)'>🎯 Günlük Referans Hedefin</div>"
         f"<div style='font-size:12.5px;color:var(--fg);margin-top:2px'>🥩 <b>{t['protein']}g Protein</b> &nbsp;·&nbsp; 🥑 <b>{t['fat']}g Yağ</b> &nbsp;·&nbsp; 🍚 <b>{t['carbs']}g Karbonhidrat</b> &nbsp;·&nbsp; 🥦 <b>{FIBER_TARGET}g Lif</b> &nbsp;(~{t['kcal']} kcal)</div></div>"
         "<div style='font-size:11.5px;color:var(--muted);max-width:440px;line-height:1.4'>"
-        "💡 <b>Neden 4 Öğün?</b> GLP-1 mide boşalmasını yavaşlatır; tek seferde 50g+ protein veya yüksek yağ hazımsızlık yapar. Her öğüne ~35–45g protein ve lif yaymak hem tokluk hem kas koruması sağlar."
+        "💡 <b>Wegovy Mide Dengesi:</b> GLP-1 mide boşalmasını geciktirir; 4 dengeli öğün hem kas protein sentezini (MPS) maksimize eder hem de şişkinlik ve reflüyü sıfırlar."
         "</div>"
         "</div></div>",
         unsafe_allow_html=True,
     )
 
     S.setdefault("meal_planner", {"breakfast": "b1", "lunch": "l1", "snack": "s1", "dinner": "d1"})
+    weekly_timing = S.setdefault("settings", {}).setdefault("weekly_workout_timing", meal_planner.DEFAULT_WEEKLY_TIMING.copy())
 
-    col_preset1, col_preset2 = st.columns([2.5, 1.2], gap="small")
-    with col_preset1:
-        day_options = [
-            ("Pazartesi (Üst A Antrenmanı)", 0),
-            ("Salı (Padel Günü)", 1),
-            ("Çarşamba (Padel Günü)", 2),
-            ("Perşembe (Alt A Antrenmanı)", 3),
-            ("Cuma (Toparlanma)", 4),
-            ("Cumartesi (Üst B Antrenmanı)", 5),
-            ("Pazar (Lif & Sindirim Ağırlıklı)", 6),
-        ]
+    day_options = [
+        ("Pazartesi · 🏋️ Alt A Güç / Dinlenme", 0),
+        ("Salı · 🎾 Akşam Padel & 1. Doz Wegovy", 1),
+        ("Çarşamba · 🎾 Akşam Padel Maçı", 2),
+        ("Perşembe · 🏋️ Alt A Güç Günü", 3),
+        ("Cuma · 🏋️ Üst B Güç Günü", 4),
+        ("Cumartesi · ☀️ Kardiyo / Gün İçi Spor", 5),
+        ("Pazar · ⚡ Kickoff / Üst A Güç", 6),
+    ]
+
+    col_d1, col_d2, col_d3 = st.columns([2.3, 1.8, 1.3], gap="small")
+    with col_d1:
+        default_idx = TODAY.weekday() if 0 <= TODAY.weekday() < 7 else 0
         sel_preset_idx = st.selectbox(
-            "📋 Hazır Gün Şablonu Yükle",
+            "📋 Gün Seçimi & Plan",
             range(len(day_options)),
+            index=default_idx,
             format_func=lambda i: day_options[i][0],
             key="mp_preset_select",
         )
-    with col_preset2:
+    with col_d2:
+        cur_day_timing = weekly_timing.get(sel_preset_idx, "weekday")
+        timing_opt_keys = ["weekday", "weekend", "padel_evening"]
+        timing_opt_labels = {
+            "weekday": "⚡ Sabah Erken Spor (06:30)",
+            "weekend": "☀️ Gün İçi Spor (11:30)",
+            "padel_evening": "🎾 Akşam Padel Maçı (18:30)",
+        }
+        chosen_timing = st.selectbox(
+            "⏰ Bu Günün Spor Saati",
+            timing_opt_keys,
+            index=timing_opt_keys.index(cur_day_timing) if cur_day_timing in timing_opt_keys else 0,
+            format_func=lambda k: timing_opt_labels[k],
+            key=f"mp_day_timing_{sel_preset_idx}",
+        )
+        if chosen_timing != cur_day_timing:
+            weekly_timing[sel_preset_idx] = chosen_timing
+            _save()
+    with col_d3:
         st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
         if st.button("🔄 Şablonu Menüye Aktar", use_container_width=True, key="btn_apply_preset"):
-            preset = meal_planner.SAMPLE_7DAY_PLAN[sel_preset_idx]
+            preset = meal_planner.get_smart_menu_for_timing(chosen_timing, sel_preset_idx)
             for k in ["breakfast", "lunch", "snack", "dinner"]:
                 S["meal_planner"][k] = preset[k]
                 st.session_state[f"mp_sel_{k}"] = preset[k]
             st.rerun()
 
-    st.caption("💡 **Şablonu Menüye Aktar:** 4 öğünü tek tek düşünmek yerine; o günün antrenman/padel durumuna göre (Örn: Salı Padel, Pazar Üst A vb.) dengelenmiş 4 öğünlük paketi tek tıkla aşağıdaki kutulara otomatik doldurur. İstersen aktardıktan sonra aralarından dilediğin öğünü değiştirebilirsin.")
+    cur_proto = meal_planner.get_circadian_meal_timing(chosen_timing)
+    st.markdown(
+        f"<div style='background:rgba(56,152,255,0.06);border-left:3px solid var(--blue);padding:8px 12px;border-radius:8px;font-size:12px;color:var(--fg);margin-bottom:12px'>"
+        f"<b>💡 Sirkadiyen Ritim ({cur_proto.get('badge','')}):</b> {cur_proto.get('rationale', '')}<br/>"
+        f"🏋️ <b>Antrenman:</b> {cur_proto.get('workout_time', '')} &nbsp;·&nbsp; 💧 <b>Öncesi Hidrasyon:</b> {cur_proto.get('pre_workout', '')} &nbsp;·&nbsp; 🌙 <b>Hedef Uyku:</b> {cur_proto.get('sleep_time', '')}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    timing_map = {item["meal"]: item for item in cur_proto.get("schedule", [])}
 
     meal_rows = [
         [
-            ("breakfast", "🍳 1. KAHVALTI", "Sabah protein sentezi ve stabil kan şekeri"),
-            ("lunch", "🥗 2. ÖĞLE YEMEĞİ", "Öğleden sonra enerjisi, Padel/antrenman öncesi"),
+            ("breakfast", "🍳 1. KAHVALTI"),
+            ("lunch", "🥗 2. ÖĞLE YEMEĞİ"),
         ],
         [
-            ("snack", "🥤 3. ARA ÖĞÜN / SHAKE", "Hafif toparlanma, evdeki protein atıştırmalıkları"),
-            ("dinner", "🍲 4. AKŞAM YEMEĞİ", "Sindirimi kolay, yüksek lif, kaliteli uyku"),
+            ("snack", "🥤 3. ARA ÖĞÜN / SHAKE"),
+            ("dinner", "🍲 4. AKŞAM YEMEĞİ"),
         ],
     ]
 
@@ -1997,7 +2028,7 @@ def _render_meal_planner():
 
     for row_idx, row_items in enumerate(meal_rows):
         row_cols = st.columns(2, gap="medium")
-        for col, (cat_key, cat_title, cat_desc) in zip(row_cols, row_items):
+        for col, (cat_key, cat_title) in zip(row_cols, row_items):
             opts = opts_map[cat_key]
             cur_id = S["meal_planner"].get(cat_key, opts[0]["id"])
             ids = [o["id"] for o in opts]
@@ -2008,11 +2039,16 @@ def _render_meal_planner():
             if f"mp_sel_{cat_key}" not in st.session_state:
                 st.session_state[f"mp_sel_{cat_key}"] = cur_id
 
+            t_info = timing_map.get(cat_key, {})
+            t_badge = f"<span style='background:rgba(56,152,255,0.15);color:var(--blue);padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700'>{t_info.get('time', '')} · {t_info.get('role', '')}</span>" if t_info else ""
+
             with col:
                 with st.container(border=True):
                     st.markdown(
-                        f"<div style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>{cat_title}</div>"
-                        f"<div style='font-size:11.5px;color:var(--muted);margin-bottom:8px'>{cat_desc}</div>",
+                        f"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px'>"
+                        f"<div style='font-family:Nunito;font-weight:900;font-size:13.5px;color:var(--fg)'>{cat_title}</div>"
+                        f"{t_badge}"
+                        f"</div>",
                         unsafe_allow_html=True,
                     )
                     sel_opt_id = st.selectbox(
@@ -2023,59 +2059,33 @@ def _render_meal_planner():
                         label_visibility="collapsed",
                     )
                     S["meal_planner"][cat_key] = sel_opt_id
-
                     selected_meal = next(x for x in opts if x["id"] == sel_opt_id)
 
-                    home_badges = "".join(
-                        f"<span style='background:rgba(52,211,153,0.15);color:var(--green);padding:2px 7px;border-radius:10px;font-size:10.5px;font-weight:600;margin-right:4px;display:inline-block;margin-bottom:4px'>🏠 {item}</span>"
-                        for item in selected_meal.get("home_items", [])
-                    )
-                    badges_html = f"<div style='min-height:26px;margin-bottom:6px'>{home_badges}</div>" if home_badges else "<div style='min-height:26px;margin-bottom:6px'></div>"
-
-                    ing_html = "".join(
-                        f"<li style='margin-bottom:2px;font-size:11.5px;color:var(--fg)'>{ing}</li>"
-                        for ing in selected_meal.get("ingredients", [])
-                    )
-
-                    meal_sups = meal_planner.get_meal_supplements(cat_key)
-                    if meal_sups:
-                        parts = []
-                        for s in meal_sups:
-                            is_opt = s.get("tier") == "as_needed"
-                            tag = "🟡 İhtiyaçta: " if is_opt else "🟢 "
-                            sname = s['name'].split()[1] if len(s['name'].split()) > 1 else s['name']
-                            sdose = s['dose'].split('(')[0].strip()
-                            parts.append(f"{tag}{sname} ({sdose})")
-                        sup_items_str = " · ".join(parts)
-                        sups_badge_html = f"<div style='background:rgba(147,51,234,0.08);border-left:3px solid #9333ea;padding:5px 8px;border-radius:4px;font-size:11px;color:var(--fg);margin-bottom:6px'>💊 <b>Takviye & Destek:</b> {sup_items_str}</div>"
-                    else:
-                        sups_badge_html = ""
-
                     st.markdown(
-                        f"<div style='background:var(--surface-2);border-radius:12px;padding:12px;margin-top:6px;min-height:365px;display:flex;flex-direction:column;justify-content:space-between'>"
-                        f"<div>"
-                        f"<div style='font-weight:700;font-size:13px;color:var(--fg)'>{selected_meal['name']}</div>"
-                        f"<div style='font-size:11.5px;color:var(--muted);min-height:32px;margin-bottom:6px;line-height:1.4'>⏱ Hazırlama: {selected_meal.get('prep_time', '5 dk')} · {selected_meal.get('subtitle', '')}</div>"
-                        f"{badges_html}"
-                        f"<ul style='margin:0 0 8px 18px;padding:0;min-height:105px'>{ing_html}</ul>"
-                        f"</div>"
-                        f"<div>"
-                        f"<div style='background:rgba(56,152,255,0.08);border-left:3px solid var(--blue);padding:6px 10px;border-radius:4px;font-size:11.5px;color:var(--fg);margin-bottom:6px;min-height:44px;display:flex;align-items:center'>"
-                        f"<span>💡 <i>{selected_meal.get('wegovy_tip', '')}</i></span></div>"
-                        f"{sups_badge_html}"
-                        f"<div style='display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--fg);background:var(--surface);padding:5px 8px;border-radius:6px;border:1px solid var(--line)'>"
+                        f"<div style='display:flex;justify-content:space-between;font-size:11.5px;font-weight:800;color:var(--fg);background:var(--surface);padding:6px 10px;border-radius:8px;border:1px solid var(--line);margin:6px 0'>"
                         f"<span>🔥 {selected_meal['kcal']} kcal</span>"
                         f"<span style='color:var(--orange)'>🥩 {selected_meal['protein']:.0f}g P</span>"
                         f"<span style='color:var(--purple)'>🥑 {selected_meal['fat']:.0f}g Y</span>"
                         f"<span style='color:var(--teal)'>🍚 {selected_meal['carbs']:.0f}g K</span>"
                         f"<span style='color:var(--green)'>🥦 {selected_meal['fiber']:.0f}g Lif</span>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+
+                    ing_preview = " · ".join([ing.split("(")[0].strip() for ing in selected_meal.get("ingredients", [])[:4]])
+                    home_tags = "".join([f"<span style='background:rgba(52,211,153,0.15);color:var(--green);padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700;margin-right:4px'>🏠 {h}</span>" for h in selected_meal.get("home_items", [])])
+
+                    st.markdown(
+                        f"<div style='font-size:11.5px;color:var(--muted);line-height:1.4;margin-bottom:4px'>"
+                        f"{home_tags} <b>İçerik:</b> {ing_preview}..."
                         f"</div>"
-                        f"</div>"
+                        f"<div style='background:rgba(56,152,255,0.06);border-left:2px solid var(--blue);padding:4px 8px;border-radius:4px;font-size:11px;color:var(--fg);line-height:1.3'>"
+                        f"💡 <i>{selected_meal.get('wegovy_tip', '')}</i>"
                         f"</div>",
                         unsafe_allow_html=True,
                     )
         if row_idx == 0:
-            st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+            st.markdown("<div style='height:2px'></div>", unsafe_allow_html=True)
 
     totals = meal_planner.calculate_menu_totals(S["meal_planner"])
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
@@ -2341,65 +2351,6 @@ def _render_meal_planner():
             S["supplements_log"][today_iso] = new_sup_state
             _save()
 
-    # Circadian Workout & Meal Timing Protocol (Nature Communications 2025 & Sleep Medicine Reviews 2026)
-    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-    with st.container(border=True):
-        st.markdown(
-            "<div style='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px'>"
-            "<div style='display:flex;align-items:center;gap:8px'>"
-            "<span style='font-size:18px'>⏰</span>"
-            "<span style='font-family:Nunito;font-weight:900;font-size:14.5px;color:var(--fg)'>Sirkadiyen Zamanlama</span>"
-            "</div>"
-            "<div style='font-size:11px;background:rgba(56,152,255,0.15);color:var(--blue);padding:3px 9px;border-radius:12px;font-weight:700'>🔬 Nature & Sleep Med Rev Klinik Kanıtı</div>"
-            "</div>"
-            "<div style='font-size:12px;color:var(--muted);margin-bottom:12px'>"
-            "<i>Nature Communications (2025)</i> ve <i>Sleep Medicine Reviews (2026)</i> meta-analizlerine göre; antrenman ve besin zamanlaması gece istirahat nabzını, HRV'yi ve derin uykuyu doğrudan etkiler. Yatmadan en az 4 saat önce eforu tamamlamak uyku mimarisini korur."
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
-        timing_keys = ["weekday", "weekend", "padel_evening"]
-        timing_labels = {
-            "weekday": "⚡ Hafta İçi: Sabah Erken Spor (06:30 – 07:45)",
-            "weekend": "☀️ Hafta Sonu: Gün İçi Spor (11:30 – 12:45)",
-            "padel_evening": "🎾 Akşam Padel Maçı (18:30 – 20:00)",
-        }
-
-        sel_timing_mode = st.radio(
-            "Gün Rutini & Antrenman Zamanı:",
-            timing_keys,
-            format_func=lambda k: timing_labels[k],
-            horizontal=True,
-            key="mp_circadian_timing_mode",
-        )
-
-        cur_proto = meal_planner.get_circadian_meal_timing(sel_timing_mode)
-
-        st.markdown(
-            f"<div style='background:rgba(56,152,255,0.06);border-left:3px solid var(--blue);padding:8px 12px;border-radius:6px;font-size:12px;color:var(--fg);margin-bottom:12px'>"
-            f"<b>💡 Sirkadiyen Rasyonel:</b> {cur_proto.get('rationale', '')}<br/>"
-            f"🏋️ <b>Antrenman:</b> {cur_proto.get('workout_time', '')} &nbsp;·&nbsp; 💧 <b>Antrenman Öncesi:</b> {cur_proto.get('pre_workout', '')} &nbsp;·&nbsp; 🌙 <b>Hedef Uyku:</b> {cur_proto.get('sleep_time', '')}"
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-
-        col_t1, col_t2, col_t3, col_t4 = st.columns(4, gap="small")
-        time_cols = [col_t1, col_t2, col_t3, col_t4]
-        for c, s_item in zip(time_cols, cur_proto.get("schedule", [])):
-            with c:
-                st.markdown(
-                    f"<div style='background:var(--surface-2);border-radius:10px;padding:10px;border:1px solid var(--line);min-height:165px;display:flex;flex-direction:column;justify-content:space-between'>"
-                    f"<div>"
-                    f"<div style='font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase'>{s_item.get('label', '')}</div>"
-                    f"<div style='font-size:12.5px;font-weight:900;color:var(--fg);margin:2px 0 4px'>⏰ {s_item.get('time', '')}</div>"
-                    f"<div style='background:rgba(52,211,153,0.12);color:var(--green);font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:6px;display:inline-block;margin-bottom:6px'>🎯 {s_item.get('role', '')}</div>"
-                    f"<div style='font-size:11px;color:var(--muted);line-height:1.35'>{s_item.get('desc', '')}</div>"
-                    f"</div>"
-                    f"<div style='font-size:10px;color:var(--orange);margin-top:6px;font-weight:600'>💊 {s_item.get('sups', '')}</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
-
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown(
@@ -2408,16 +2359,22 @@ def _render_meal_planner():
             "<span style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>Eşine Gönder & WhatsApp Menü Bildirimi</span>"
             "</div>"
             "<div style='font-size:12px;color:var(--muted);margin-bottom:8px'>"
-            "Her akşam bir gün sonrasının menüsünü belirleyip aşağıdaki metni tek tıkla kopyalayarak WhatsApp üzerinden eşine gönderebilirsin. Böylece evdeki akşam yemeği ve ortak hazırlıklar senkronize olur."
+            "Her akşam bir gün sonrasının menüsünü belirleyip aşağıdaki metni tek tıkla kopyalayarak WhatsApp üzerinden eşine gönderebilirsin. Böylece evdeki ortak hazırlıklar ve akşam yemeği senkronize olur."
             "</div>",
             unsafe_allow_html=True,
         )
+        timing_keys = ["weekday", "weekend", "padel_evening"]
+        timing_labels = {
+            "weekday": "⚡ Sabah Erken Spor (06:30)",
+            "weekend": "☀️ Gün İçi Spor (11:30)",
+            "padel_evening": "🎾 Akşam Padel Maçı (18:30)",
+        }
         col_wa1, col_wa2 = st.columns([1.5, 2.5], gap="medium")
         with col_wa1:
             wa_timing_mode = st.selectbox(
                 "WhatsApp Zamanlama Formatı",
                 timing_keys,
-                index=timing_keys.index(sel_timing_mode) if sel_timing_mode in timing_keys else 0,
+                index=0,
                 format_func=lambda k: timing_labels[k],
                 key="mp_wa_timing_mode",
             )
@@ -2427,7 +2384,7 @@ def _render_meal_planner():
 
 
 def _render_weekly_grocery():
-    st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🛒 7 Günlük Dengeli Menü & Alışveriş Listesi</div>", unsafe_allow_html=True)
+    st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🛒 Menü & Alışveriş Listesi</div>", unsafe_allow_html=True)
 
     tab_w_plan, tab_w_groc, tab_w_lib = st.tabs([
         "🗓 7 Günlük Örnek Menü Planı",
@@ -2438,11 +2395,13 @@ def _render_weekly_grocery():
     with tab_w_plan:
         st.markdown(
             "<div style='font-size:12.5px;color:var(--muted);margin-bottom:12px'>"
-            "Haftalık antrenman (Pazar Üst A, Salı Padel, Çarşamba Padel, Perşembe Alt A, Cumartesi Üst B) programına göre optimize edilmiş 7 günlük örnek beslenme planı:"
+            "Haftalık antrenman ve Padel maçlarına göre dengelenmiş 7 günlük beslenme planı. Tek bakışta inceleyebilir ve dilediğin günü doğrudan menüne aktarabilirsin:"
             "</div>",
             unsafe_allow_html=True,
         )
-        for p in meal_planner.SAMPLE_7DAY_PLAN:
+        col_w_a, col_w_b = st.columns(2, gap="medium")
+        for idx, p in enumerate(meal_planner.SAMPLE_7DAY_PLAN):
+            target_col = col_w_a if idx % 2 == 0 else col_w_b
             day_tots = meal_planner.calculate_menu_totals({
                 "breakfast": p["breakfast"],
                 "lunch": p["lunch"],
@@ -2454,18 +2413,29 @@ def _render_weekly_grocery():
             s_item = day_tots["items"]["snack"]
             d_item = day_tots["items"]["dinner"]
             focus_lbl = p.get("focus", p.get("workout_focus", ""))
-            with st.expander(f"📅 **{p['day']}** — {focus_lbl} ({day_tots['kcal']} kcal · {day_tots['protein']:.0f}g P · {day_tots['fiber']:.0f}g Lif)"):
-                st.markdown(
-                    f"<div style='font-size:12.5px;line-height:1.6;color:var(--fg)'>"
-                    f"🍳 <b>Kahvaltı:</b> {b_item['name']} ({b_item['kcal']} kcal · {b_item['protein']:.0f}g P)<br>"
-                    f"🥗 <b>Öğle:</b> {l_item['name']} ({l_item['kcal']} kcal · {l_item['protein']:.0f}g P)<br>"
-                    f"🥤 <b>Ara Öğün:</b> {s_item['name']} ({s_item['kcal']} kcal · {s_item['protein']:.0f}g P)<br>"
-                    f"🍲 <b>Akşam:</b> {d_item['name']} ({d_item['kcal']} kcal · {d_item['protein']:.0f}g P)<br>"
-                    f"<div style='margin-top:6px;padding-top:6px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)'>"
-                    f"🎯 <b>Günlük Toplam:</b> {day_tots['kcal']} kcal &nbsp;·&nbsp; 🥩 {day_tots['protein']:.0f}g Protein &nbsp;·&nbsp; 🥑 {day_tots['fat']:.0f}g Yağ &nbsp;·&nbsp; 🍚 {day_tots['carbs']:.0f}g Karb &nbsp;·&nbsp; 🥦 {day_tots['fiber']:.0f}g Lif"
-                    f"</div></div>",
-                    unsafe_allow_html=True,
-                )
+
+            with target_col:
+                with st.container(border=True):
+                    st.markdown(
+                        f"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:4px'>"
+                        f"<div style='font-family:Nunito;font-weight:900;font-size:13.5px;color:var(--fg)'>📅 {p['day']}</div>"
+                        f"<div style='font-size:11px;font-weight:700;color:var(--green);background:rgba(52,211,153,0.12);padding:2px 7px;border-radius:8px'>🔥 {day_tots['kcal']} kcal · 🥩 {day_tots['protein']:.0f}g P</div>"
+                        f"</div>"
+                        f"<div style='font-size:11px;color:var(--blue);font-weight:700;margin-bottom:8px'>🎯 {focus_lbl}</div>"
+                        f"<div style='font-size:11.5px;line-height:1.55;color:var(--fg);background:var(--surface-2);padding:8px 10px;border-radius:8px;border:1px solid var(--line);margin-bottom:8px'>"
+                        f"🍳 <b>Kahvaltı:</b> {b_item['name']}<br/>"
+                        f"🥗 <b>Öğle:</b> {l_item['name']}<br/>"
+                        f"🥤 <b>Ara Öğün:</b> {s_item['name']}<br/>"
+                        f"🍲 <b>Akşam:</b> {d_item['name']}"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+                    if st.button(f"📥 {p['day']} Menüsünü Aktar", key=f"btn_apply_day_{idx}", use_container_width=True):
+                        for k in ["breakfast", "lunch", "snack", "dinner"]:
+                            S["meal_planner"][k] = p[k]
+                            st.session_state[f"mp_sel_{k}"] = p[k]
+                        st.success(f"{p['day']} menüsü Akıllı Menü sekmesine aktarıldı ✓")
+                        st.rerun()
 
     with tab_w_groc:
         st.markdown(
@@ -2720,11 +2690,14 @@ def page_nutrition():
         unsafe_allow_html=True,
     )
 
-    tab_log, tab_plan, tab_grocery = st.tabs([
+    tab_plan, tab_log, tab_grocery = st.tabs([
+        "🥗 Akıllı Menü",
         "📊 Günlük Takip & Makrolar",
-        "🥗 4 Öğünlü Akıllı Menü",
-        "🛒 7 Günlük Menü & Alışveriş Listesi",
+        "🛒 Menü & Alışveriş Listesi",
     ])
+
+    with tab_plan:
+        _render_meal_planner()
 
     with tab_log:
         with st.container(border=True):
@@ -2832,20 +2805,69 @@ def page_nutrition():
             st.markdown(f"<div class='tiles' style='margin-bottom:12px'>{tiles_html}</div>", unsafe_allow_html=True)
             st.info("💡 Henüz bugünün beslenme kaydı girilmedi. **🥗 4 Öğünlü Akıllı Menü** sekmesinden günün öğünlerini tek tıkla doğrudan uygulamaya kaydedebilir ya da Cronometer'dan **dailysummary.csv** yükleyebilirsin.")
 
-        with st.container(border=True):
-            st.markdown("<div class='eyebrow' style='margin:0 0 8px'>⚖️ Manuel Kilo Kaydet</div>", unsafe_allow_html=True)
-            c1, c2 = st.columns([2.5, 1], gap="small")
-            nw = c1.number_input("kg", min_value=40.0, max_value=250.0, value=float(latest_weight()[0] or 100.0), step=0.1, label_visibility="collapsed")
-            if c2.button("Kaydet", use_container_width=True, key="nut_weight_save"):
-                iso = TODAY.strftime("%Y-%m-%d")
-                S["weights"] = [x for x in S["weights"] if x["date"] != iso] + [{"date": iso, "w": round(nw, 1)}]
-                compute_targets()
-                _save()
-                st.success("Kalıcı olarak kaydedildi ✓")
-                st.rerun()
-
+        wkg = latest_weight()[0] or 100.0
+        wl = S.get("weekly_loss", 0.0)
         ws = wegovy_status()
-        with st.expander(f"💉 Wegovy doz & enjeksiyon takibi ({ws['dose_mg']:g} mg · her {ws['inj_day_name']})", expanded=ws["days_until"] == 0):
+
+        col_w1, col_w2 = st.columns(2, gap="medium")
+        with col_w1:
+            with st.container(border=True):
+                st.markdown(
+                    "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px'>"
+                    "<div style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>⚖️ Tartım & Kilo Takibi</div>"
+                    f"<div style='font-size:11px;font-weight:700;color:var(--green);background:rgba(52,211,153,0.12);padding:2px 8px;border-radius:10px'>Son: {wkg:.1f} kg</div>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+                c1, c2 = st.columns([2.2, 1.2], gap="small")
+                with c1:
+                    nw = c1.number_input("kg", min_value=40.0, max_value=250.0, value=float(latest_weight()[0] or 100.0), step=0.1, label_visibility="collapsed")
+                with c2:
+                    if c2.button("Kaydet", use_container_width=True, key="nut_weight_save", type="primary"):
+                        iso = TODAY.strftime("%Y-%m-%d")
+                        S["weights"] = [x for x in S["weights"] if x["date"] != iso] + [{"date": iso, "w": round(nw, 1)}]
+                        compute_targets()
+                        _save()
+                        st.success("Kalıcı olarak kaydedildi ✓")
+                        st.rerun()
+                st.markdown(
+                    f"<div style='font-size:11.5px;color:var(--muted);margin-top:6px'>"
+                    f"🎯 Başlangıç: 100.0 kg &nbsp;·&nbsp; Haftalık Hız: <b style='color:var(--green)'>~{wl:.2f} kg/hafta</b>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+        with col_w2:
+            with st.container(border=True):
+                inj_badge = "🔔 Bugün Doz Günü" if ws["days_until"] == 0 else f"⏳ {ws['days_until']} gün kaldı"
+                st.markdown(
+                    "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px'>"
+                    "<div style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>💉 Wegovy Enjeksiyonu</div>"
+                    f"<div style='font-size:11px;font-weight:700;color:var(--blue);background:rgba(56,152,255,0.12);padding:2px 8px;border-radius:10px'>{inj_badge}</div>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+                c_wg1, c_wg2 = st.columns([2, 1.2], gap="small")
+                with c_wg1:
+                    inj_date = c_wg1.date_input("Enjeksiyon tarihi", value=TODAY, max_value=TODAY, format="DD.MM.YYYY", key="weg_dt", label_visibility="collapsed")
+                with c_wg2:
+                    cur_dose = ws["dose_mg"] if ws["dose_mg"] in WEGOVY_DOSES else 0.25
+                    if c_wg2.button("Dozu Kaydet", use_container_width=True, key="weg_dose_save_btn", type="primary"):
+                        iso_d = inj_date.isoformat()
+                        logs = [x for x in S["wegovy"].get("logs", []) if x.get("date") != iso_d]
+                        logs.append({"date": iso_d, "dose": float(cur_dose), "site": ws["next_site"]})
+                        S["wegovy"]["logs"] = sorted(logs, key=lambda x: x["date"])
+                        _save()
+                        st.success(f"{iso_d} · {cur_dose:g} mg ({ws['next_site']}) kaydedildi ✓")
+                        st.rerun()
+                st.markdown(
+                    f"<div style='font-size:11.5px;color:var(--muted);margin-top:6px'>"
+                    f"💊 Doz: <b>{ws['dose_mg']:g} mg</b> &nbsp;·&nbsp; Önerilen Bölge: <b>{ws['next_site']}</b> (Her {ws['inj_day_name']})"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+        with st.expander(f"⚙️ Wegovy Titrasyon & Doz Ayarları ({ws['dose_mg']:g} mg · her {ws['inj_day_name']})", expanded=False):
             wc1, wc2, wc3 = st.columns([1.2, 1.3, 1.5])
             cur_dose = ws["dose_mg"] if ws["dose_mg"] in WEGOVY_DOSES else 0.25
             new_dose = wc1.selectbox("Mevcut doz (mg)", WEGOVY_DOSES, index=WEGOVY_DOSES.index(cur_dose),
@@ -2858,16 +2880,6 @@ def page_nutrition():
                 S["wegovy"]["dose_mg"] = float(new_dose)
                 S["wegovy"]["inj_weekday"] = int(new_wd)
                 _save()
-                st.rerun()
-            lc1, lc2 = st.columns([2, 1])
-            inj_date = lc1.date_input("Enjeksiyon tarihi", value=TODAY, max_value=TODAY, format="DD.MM.YYYY", key="weg_dt")
-            if lc2.button("💉 Dozu kaydet", use_container_width=True, type="primary"):
-                iso_d = inj_date.isoformat()
-                logs = [x for x in S["wegovy"].get("logs", []) if x.get("date") != iso_d]
-                logs.append({"date": iso_d, "dose": float(new_dose), "site": sel_site})
-                S["wegovy"]["logs"] = sorted(logs, key=lambda x: x["date"])
-                _save()
-                st.success(f"{iso_d} · {new_dose:g} mg ({sel_site}) kaydedildi ✓")
                 st.rerun()
             logs = S["wegovy"].get("logs") or []
             if logs:
@@ -3033,9 +3045,6 @@ def page_nutrition():
             f"(<span class='muted'>%{wlpct:.2f}/hafta · günde ~{S.get('deficit_now',0)} kcal açık</span>)</div></div>",
             unsafe_allow_html=True,
         )
-
-    with tab_plan:
-        _render_meal_planner()
 
     with tab_grocery:
         _render_weekly_grocery()

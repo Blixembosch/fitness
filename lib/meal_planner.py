@@ -1025,6 +1025,51 @@ def get_circadian_meal_timing(mode: str = "weekday") -> dict:
     return CIRCADIAN_MEAL_TIMING.get(mode, CIRCADIAN_MEAL_TIMING["weekday"])
 
 
+DEFAULT_WEEKLY_TIMING: dict[int, str] = {
+    0: "weekday",        # Pazartesi (Sabah Erken Spor 06:30)
+    1: "padel_evening",  # Salı (Akşam Padel 18:30)
+    2: "padel_evening",  # Çarşamba (Akşam Padel 18:30)
+    3: "weekday",        # Perşembe (Sabah Erken Spor 06:30)
+    4: "weekday",        # Cuma (Sabah Erken Spor / Toparlanma)
+    5: "weekend",        # Cumartesi (Gün İçi Spor 11:30)
+    6: "weekday",        # Pazar (Sabah Erken Spor 06:30)
+}
+
+
+def get_smart_menu_for_timing(timing_mode: str = "weekday", day_idx: int = 0) -> dict[str, str]:
+    """Return an evidence-based 4-meal plan specifically structured for the selected timing mode."""
+    if timing_mode == "weekday":
+        # Morning workout (06:30): Breakfast is Post-Workout Anabolic MPS recovery
+        return {
+            "breakfast": "b1",  # Kwark, Yulaf & Çikolatalı Whey (42g P, MPS window)
+            "lunch": "l1",      # Tavuk Göğsü, Basmati & Brokoli (45g P)
+            "snack": "s1",      # Çikolatalı Fit Mousse & Kwark (35g P)
+            "dinner": "d1",     # Kıymalı & Bezelyeli Ev Yemeği (40g P)
+        }
+    elif timing_mode == "weekend":
+        # Daytime workout (11:30): Breakfast is Pre-workout fuel, Lunch is Post-workout
+        return {
+            "breakfast": "b2",  # Sıcak Vanilla Yulaf Lapası & Muz (Pre-workout sustained energy)
+            "lunch": "l2",      # Suda Ton Balıklı & Nohutlu Kase (Post-workout recovery)
+            "snack": "s2",      # Çikolata Recovery Shake
+            "dinner": "d5",     # Çıtır Nohutlu & Tavuklu Kase
+        }
+    elif timing_mode == "padel_evening":
+        # Evening Padel (18:30): Sustained pre-match lunch, pre-match carb & electrolyte snack, light dinner
+        return {
+            "breakfast": "b3",  # Hüttenkäse & Yumurtalı Tost
+            "lunch": "l3",      # Hüttenkäse & Tavuklu Wrap (High fuel for evening match)
+            "snack": "s4",      # AH Protein Drink & Muz & Soda (Pre-game carb & electrolyte)
+            "dinner": "d4",     # Tavuklu & Brokolili Wok (Light digestion, sleep protected)
+        }
+    return {
+        "breakfast": "b1",
+        "lunch": "l1",
+        "snack": "s1",
+        "dinner": "d1",
+    }
+
+
 def format_whatsapp_daily_plan(
     selected_ids: dict[str, str],
     day_label: str = "Yarınki",
