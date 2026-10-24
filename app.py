@@ -1975,15 +1975,18 @@ def _render_meal_planner():
                 st.session_state[f"mp_sel_{k}"] = preset[k]
             st.rerun()
 
-    categories = [
-        ("breakfast", "🍳 1. KAHVALTI", "Sabah protein sentezi ve stabil kan şekeri"),
-        ("lunch", "🥗 2. ÖĞLE YEMEĞİ", "Öğleden sonra enerjisi, Padel/antrenman öncesi"),
-        ("snack", "🥤 3. ARA ÖĞÜN / SHAKE", "Hafif toparlanma, evdeki protein atıştırmalıkları"),
-        ("dinner", "🍲 4. AKŞAM YEMEĞİ", "Sindirimi kolay, yüksek lif, kaliteli uyku"),
-    ]
+    st.caption("💡 **Şablonu Menüye Aktar:** 4 öğünü tek tek düşünmek yerine; o günün antrenman/padel durumuna göre (Örn: Salı Padel, Pazar Üst A vb.) dengelenmiş 4 öğünlük paketi tek tıkla aşağıdaki kutulara otomatik doldurur. İstersen aktardıktan sonra aralarından dilediğin öğünü değiştirebilirsin.")
 
-    c_left, c_right = st.columns(2, gap="medium")
-    cols_map = {"breakfast": c_left, "lunch": c_right, "snack": c_left, "dinner": c_right}
+    meal_rows = [
+        [
+            ("breakfast", "🍳 1. KAHVALTI", "Sabah protein sentezi ve stabil kan şekeri"),
+            ("lunch", "🥗 2. ÖĞLE YEMEĞİ", "Öğleden sonra enerjisi, Padel/antrenman öncesi"),
+        ],
+        [
+            ("snack", "🥤 3. ARA ÖĞÜN / SHAKE", "Hafif toparlanma, evdeki protein atıştırmalıkları"),
+            ("dinner", "🍲 4. AKŞAM YEMEĞİ", "Sindirimi kolay, yüksek lif, kaliteli uyku"),
+        ],
+    ]
 
     opts_map = {
         "breakfast": meal_planner.get_meal_options("breakfast"),
@@ -1992,62 +1995,72 @@ def _render_meal_planner():
         "dinner": meal_planner.get_meal_options("dinner"),
     }
 
-    for cat_key, cat_title, cat_desc in categories:
-        opts = opts_map[cat_key]
-        cur_id = S["meal_planner"].get(cat_key, opts[0]["id"])
-        ids = [o["id"] for o in opts]
-        if cur_id not in ids:
-            cur_id = ids[0]
-            S["meal_planner"][cat_key] = cur_id
+    for row_idx, row_items in enumerate(meal_rows):
+        row_cols = st.columns(2, gap="medium")
+        for col, (cat_key, cat_title, cat_desc) in zip(row_cols, row_items):
+            opts = opts_map[cat_key]
+            cur_id = S["meal_planner"].get(cat_key, opts[0]["id"])
+            ids = [o["id"] for o in opts]
+            if cur_id not in ids:
+                cur_id = ids[0]
+                S["meal_planner"][cat_key] = cur_id
 
-        if f"mp_sel_{cat_key}" not in st.session_state:
-            st.session_state[f"mp_sel_{cat_key}"] = cur_id
+            if f"mp_sel_{cat_key}" not in st.session_state:
+                st.session_state[f"mp_sel_{cat_key}"] = cur_id
 
-        with cols_map[cat_key]:
-            with st.container(border=True):
-                st.markdown(
-                    f"<div style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>{cat_title}</div>"
-                    f"<div style='font-size:11.5px;color:var(--muted);margin-bottom:8px'>{cat_desc}</div>",
-                    unsafe_allow_html=True,
-                )
-                sel_opt_id = st.selectbox(
-                    f"{cat_title} Seçimi",
-                    ids,
-                    format_func=lambda oid, op=opts: next(f"{x['name']} ({x['kcal']} kcal · {x['protein']:.0f}g P)" for x in op if x["id"] == oid),
-                    key=f"mp_sel_{cat_key}",
-                    label_visibility="collapsed",
-                )
-                S["meal_planner"][cat_key] = sel_opt_id
+            with col:
+                with st.container(border=True):
+                    st.markdown(
+                        f"<div style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>{cat_title}</div>"
+                        f"<div style='font-size:11.5px;color:var(--muted);margin-bottom:8px'>{cat_desc}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    sel_opt_id = st.selectbox(
+                        f"{cat_title} Seçimi",
+                        ids,
+                        format_func=lambda oid, op=opts: next(f"{x['name']} ({x['kcal']} kcal · {x['protein']:.0f}g P)" for x in op if x["id"] == oid),
+                        key=f"mp_sel_{cat_key}",
+                        label_visibility="collapsed",
+                    )
+                    S["meal_planner"][cat_key] = sel_opt_id
 
-                selected_meal = next(x for x in opts if x["id"] == sel_opt_id)
+                    selected_meal = next(x for x in opts if x["id"] == sel_opt_id)
 
-                home_badges = "".join(
-                    f"<span style='background:rgba(52,211,153,0.15);color:var(--green);padding:2px 7px;border-radius:10px;font-size:10.5px;font-weight:600;margin-right:4px;display:inline-block;margin-bottom:4px'>🏠 {item}</span>"
-                    for item in selected_meal.get("home_items", [])
-                )
-                ing_html = "".join(
-                    f"<li style='margin-bottom:2px;font-size:11.5px;color:var(--fg)'>{ing}</li>"
-                    for ing in selected_meal.get("ingredients", [])
-                )
+                    home_badges = "".join(
+                        f"<span style='background:rgba(52,211,153,0.15);color:var(--green);padding:2px 7px;border-radius:10px;font-size:10.5px;font-weight:600;margin-right:4px;display:inline-block;margin-bottom:4px'>🏠 {item}</span>"
+                        for item in selected_meal.get("home_items", [])
+                    )
+                    badges_html = f"<div style='min-height:26px;margin-bottom:6px'>{home_badges}</div>" if home_badges else "<div style='min-height:26px;margin-bottom:6px'></div>"
 
-                st.markdown(
-                    f"<div style='background:var(--surface-2);border-radius:12px;padding:12px;margin-top:6px'>"
-                    f"<div style='font-weight:700;font-size:13px;color:var(--fg)'>{selected_meal['name']}</div>"
-                    f"<div style='font-size:11.5px;color:var(--muted);margin-bottom:6px'>⏱ Hazırlama: {selected_meal.get('prep_time', '5 dk')} · {selected_meal.get('subtitle', '')}</div>"
-                    f"<div style='margin-bottom:8px'>{home_badges}</div>"
-                    f"<ul style='margin:0 0 8px 18px;padding:0'>{ing_html}</ul>"
-                    f"<div style='background:rgba(56,152,255,0.08);border-left:3px solid var(--blue);padding:6px 10px;border-radius:4px;font-size:11.5px;color:var(--fg);margin-bottom:8px'>"
-                    f"💡 <i>{selected_meal.get('wegovy_tip', '')}</i></div>"
-                    f"<div style='display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--fg);background:var(--surface);padding:5px 8px;border-radius:6px;border:1px solid var(--line)'>"
-                    f"<span>🔥 {selected_meal['kcal']} kcal</span>"
-                    f"<span style='color:var(--orange)'>🥩 {selected_meal['protein']:.0f}g P</span>"
-                    f"<span style='color:var(--purple)'>🥑 {selected_meal['fat']:.0f}g Y</span>"
-                    f"<span style='color:var(--teal)'>🍚 {selected_meal['carbs']:.0f}g K</span>"
-                    f"<span style='color:var(--green)'>🥦 {selected_meal['fiber']:.0f}g Lif</span>"
-                    f"</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
+                    ing_html = "".join(
+                        f"<li style='margin-bottom:2px;font-size:11.5px;color:var(--fg)'>{ing}</li>"
+                        for ing in selected_meal.get("ingredients", [])
+                    )
+
+                    st.markdown(
+                        f"<div style='background:var(--surface-2);border-radius:12px;padding:12px;margin-top:6px;min-height:355px;display:flex;flex-direction:column;justify-content:space-between'>"
+                        f"<div>"
+                        f"<div style='font-weight:700;font-size:13px;color:var(--fg)'>{selected_meal['name']}</div>"
+                        f"<div style='font-size:11.5px;color:var(--muted);min-height:32px;margin-bottom:6px;line-height:1.4'>⏱ Hazırlama: {selected_meal.get('prep_time', '5 dk')} · {selected_meal.get('subtitle', '')}</div>"
+                        f"{badges_html}"
+                        f"<ul style='margin:0 0 8px 18px;padding:0;min-height:105px'>{ing_html}</ul>"
+                        f"</div>"
+                        f"<div>"
+                        f"<div style='background:rgba(56,152,255,0.08);border-left:3px solid var(--blue);padding:6px 10px;border-radius:4px;font-size:11.5px;color:var(--fg);margin-bottom:8px;min-height:46px;display:flex;align-items:center'>"
+                        f"<span>💡 <i>{selected_meal.get('wegovy_tip', '')}</i></span></div>"
+                        f"<div style='display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--fg);background:var(--surface);padding:5px 8px;border-radius:6px;border:1px solid var(--line)'>"
+                        f"<span>🔥 {selected_meal['kcal']} kcal</span>"
+                        f"<span style='color:var(--orange)'>🥩 {selected_meal['protein']:.0f}g P</span>"
+                        f"<span style='color:var(--purple)'>🥑 {selected_meal['fat']:.0f}g Y</span>"
+                        f"<span style='color:var(--teal)'>🍚 {selected_meal['carbs']:.0f}g K</span>"
+                        f"<span style='color:var(--green)'>🥦 {selected_meal['fiber']:.0f}g Lif</span>"
+                        f"</div>"
+                        f"</div>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+        if row_idx == 0:
+            st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
     totals = meal_planner.calculate_menu_totals(S["meal_planner"])
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
