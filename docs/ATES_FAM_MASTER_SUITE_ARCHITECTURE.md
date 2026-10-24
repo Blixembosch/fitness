@@ -118,26 +118,31 @@ Streamlit'in global `st.session_state` sözlüğü ortak paylaşıldığı için
 
 ## 🔐 4. Rol Tabanlı Yetkilendirme & Aile Profil Mimarisi (RBAC)
 
-Kullanıcının kritik gereksinimi: **"Oğlumun Budget ve Fitness sayfalarına erişmesini istemiyorum. Kütüphaneye ve Flight Radar'a erişsin, ancak Kütüphane içinde yönetici işlemleri için şifre koruması olsun."**
+Kullanıcının tanımladığı aile yapısı ve yetki matrisi:
+* **Anıl (Admin):** Tüm 4 projeye ve tüm alt sayfalara tam yönetici erişimi.
+* **Berna (Eş / Anne):** Library ve Flight'a tam erişim; Fitness tarafında **"Menü & Sağlık"** (4 Öğünlü Menü, Alışveriş Listesi, Takviye Takibi) odaklı arayüze erişim; Budget erişimi.
+* **Atlas (Junior):** Yalnızca Library (Okuyucu modu) ve Flight (Canlı takip). Fitness ve Budget kesinlikle görünmez ve engelli.
+* **Alina (Junior — Gelecek Üye):** Henüz doğmadı ancak profil altyapısı şimdiden hazır! Atlas ile aynı kurallara tabi (Library okuyucu + Flight tam erişim; Fitness ve Budget engelli).
 
-Bu gereksinim, Netflix tarzı **Aile Profil Seçimi (Profile Switcher) + İki Kademeli Yetkilendirme (RBAC)** ile çözülür:
+### 1. Aile Erişim Yetki Matrisi (Family Authorization Matrix)
 
-### 1. Erişim Matrisi (Authorization Matrix)
-
-| Profil / Kullanıcı | Giriş Yöntemi | 🏋️ Fitness | 💰 Budget | 📚 Atlas Library | ✈️ Flight Radar |
+| Profil / Aile Üyesi | Giriş Yöntemi | 🏋️ Fitness Kapsamı | 💰 Budget | 📚 Library | ✈️ Flight |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| 👑 **Anıl (Admin / Baba)** | 4 Haneli PIN (`****`) | ✅ Tam Erişim | ✅ Tam Erişim | ✅ Yönetici Modu (Kitap Ekle/Sil/Düzenle) | ✅ Tam Erişim |
-| 🧒 **Atlas (Junior / Çocuk)** | Şifresiz / Tek Tık | ❌ **Görünmez & Engelli** | ❌ **Görünmez & Engelli** | ✅ Okuyucu Modu (Kitap İnceleme & Arama) | ✅ Tam Erişim |
-| 👩 **Eş (Anne / Opsiyonel)** | 4 Haneli PIN | ✅ Menü & Sağlık | ✅ Bütçe İnceleme | ✅ Okuyucu Modu | ✅ Tam Erişim |
+| 👑 **Anıl (Admin / Baba)** | 4 Haneli PIN (`****`) | ✅ **Tam Erişim** (Tüm Sayfalar) | ✅ **Tam Erişim** | ✅ **Yönetici Modu** (Ekle/Sil/Düzenle) | ✅ **Tam Erişim** |
+| 👩 **Berna (Eş / Anne)** | 4 Haneli PIN (`****`) | 🥗 **Menü & Sağlık** (Beslenme & Takviye) | ✅ **Tam Erişim** | ✅ **Tam Erişim** (Okuma & Düzenleme) | ✅ **Tam Erişim** |
+| 🧒 **Atlas (Junior / Çocuk)** | Şifresiz / Tek Tık | ❌ **Görünmez & Engelli** | ❌ **Görünmez & Engelli** | 📖 **Okuyucu Modu** (Arama & İnceleme) | ✅ **Tam Erişim** |
+| 👶 **Alina (Junior / Bebek)** | Şifresiz / Tek Tık | ❌ **Görünmez & Engelli** | ❌ **Görünmez & Engelli** | 📖 **Okuyucu Modu** (Arama & İnceleme) | ✅ **Tam Erişim** |
 
 ### 2. Router Düzeyinde Güvenlik ve URL Manipülasyon Engeli
-Atlas profili aktifken:
+Atlas veya Alina profili aktifken:
 * Menü çubuğunda `[ 💰 Bütçe ]` ve `[ 🏋️ Fitness ]` butonları arayüzde **kesinlikle render edilmez**.
-* Atlas tarayıcı adres satırına elle `?app=budget` veya `?app=fitness` yazsa bile yönlendirici bunu anında yakalar:
+* Çocuklar tarayıcı adres satırına elle `?app=budget` veya `?app=fitness` yazsa bile yönlendirici bunu anında yakalar:
   ```python
   ALLOWED_APPS = {
-      "atlas": ["library", "flight_radar"],
-      "anil": ["fitness", "budget", "library", "flight_radar"],
+      "atlas": ["library", "flight"],
+      "alina": ["library", "flight"],
+      "berna": ["fitness", "budget", "library", "flight"],
+      "anil": ["fitness", "budget", "library", "flight"],
   }
 
   current_profile = st.session_state.get("active_profile", "atlas")
@@ -146,18 +151,22 @@ Atlas profili aktifken:
       st.stop()
   ```
 
-### 3. Kütüphane İçi Yönetici Kilidi (Library Admin Gate)
-* Atlas kütüphane uygulamasını açtığında şu anki gibi kitapları listeleyebilir, arayabilir ve okuma durumunu görebilir.
-* Ancak kütüphane içindeki **"Kitap Sil", "Yeni Kitap Ekle" veya "Katalog Ayarları"** sekmesine/butonuna tıklandığında:
-  * Sistem şık bir modal/popover açar: `"🔒 Bu işlem için Yönetici PIN kodu gereklidir"`.
-  * Yalnızca Anıl'ın bildiği 4 haneli PIN girildiğinde işlem onaylanır.
-
-### 4. PIN Hashleme & Secrets Güvenliği
-* PIN kodları kod içine yazılmaz; `.streamlit/secrets.toml` dosyasında SHA-256 hash olarak saklanır:
-  ```toml
-  [auth]
-  admin_pin_hash = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3" # Örn: '1234'
+### 3. Berna İçin Fitness "Menü & Sağlık" Granüler Kapsamı
+* Berna profiliyle Fitness açıldığında, antrenman setleri (`setlog`), RPE ve dambıl ağırlık sayfaları arayüzden gizlenir.
+* Doğrudan aile beslenme ve sağlık koordinasyonunu sağlayan **"Menü & Sağlık Merkezi"** (4 Öğünlü Akıllı Menü, Günün Beslenmesini Kaydet, 7 Günlük Menü & Alışveriş Listesi ve Takviye Takibi) gösterilir:
+  ```python
+  if profile == "berna":
+      # Yalnızca Menü, Beslenme ve Sağlık sekmelerini render et
+      fitness_app.run_nutrition_and_health_mode()
+  else:
+      fitness_app.run_full_mode()
   ```
+
+### 4. Kütüphane İçi Yönetici Kilidi (Library Admin Gate)
+* Atlas veya Alina kütüphaneyi açtığında kitapları inceler, arama yapar ve okuma listelerine bakar.
+* İçeride **"Kitap Sil"**, **"Yeni Kitap Ekle"** veya **"Katalog Ayarları"** butonlarına tıklandığında:
+  * Sistem şık bir modal açar: `"🔒 Bu işlem için Ebeveyn PIN kodu gereklidir."`
+  * Yalnızca Anıl veya Berna'nın PIN'i girildiğinde işlem gerçekleşir.
 
 ---
 
@@ -171,28 +180,32 @@ from core import auth, layout, theme
 st.set_page_config(page_title="ATES FAM Suite", page_icon="🏛️", layout="wide")
 theme.apply_theme()
 
-# 1. Profil ve Kimlik Doğrulama
-profile = auth.render_profile_bar() # "anil" veya "atlas"
+# 1. Netflix Tarzı Aile Profil Seçimi (Anıl, Berna, Atlas, Alina)
+profile = auth.render_profile_selector()
 
 # 2. Yetkiye Göre Dinamik Menü Çubuğu
-# Atlas ise sadece [📚 Kütüphane] [✈️ Flight Radar] gösterilir
-# Anıl ise [🏋️ Fitness] [💰 Bütçe] [📚 Kütüphane] [✈️ Flight Radar] gösterilir
+# Atlas / Alina -> [📚 Kütüphane] [✈️ Flight]
+# Berna -> [🥗 Menü & Sağlık] [💰 Bütçe] [📚 Kütüphane] [✈️ Flight]
+# Anıl -> [🏋️ Fitness] [💰 Bütçe] [📚 Kütüphane] [✈️ Flight]
 selected_app = layout.render_app_switcher(profile)
 
 # 3. Güvenli Modüler Yönlendirme
 if selected_app == "fitness" and auth.can_access(profile, "fitness"):
     from apps.fitness import main as fitness_app
-    fitness_app.run()
+    if profile == "berna":
+        fitness_app.run_nutrition_health_mode()
+    else:
+        fitness_app.run_full_mode()
 elif selected_app == "budget" and auth.can_access(profile, "budget"):
     from apps.budget import main as budget_app
     budget_app.run()
 elif selected_app == "library":
     from apps.library import main as library_app
-    is_admin = (profile == "anil")
+    is_admin = (profile in ["anil", "berna"])
     library_app.run(is_admin=is_admin)
-elif selected_app == "flight_radar":
-    from apps.flight_radar import main as radar_app
-    radar_app.run()
+elif selected_app == "flight":
+    from apps.flight import main as flight_app
+    flight_app.run()
 ```
 
 ---
@@ -205,13 +218,13 @@ Argon kotası açıldığında takip edilecek 6 aşamalı uygulama planı:
    * GitHub üzerinde `Blixembosch/ates-fam-suite` adında yeni bir **Private** depo oluşturulur.
    * Temel dizin yapısı (`core/`, `apps/`, `.streamlit/`) açılır.
 2. **Aşama 2 — Kodların Taşınması:**
-   * `ATES_FAM_Fitness`, `ATES_FAM_Budget`, `Atlas Library` ve `Flight Radar` kodları `apps/` altına modüler olarak kopyalanır.
+   * `ATES_FAM_Fitness`, `ATES_FAM_Budget`, `Atlas Library` ve `Flight` kodları `apps/` altına modüler olarak kopyalanır (`apps/fitness`, `apps/budget`, `apps/library`, `apps/flight`).
 3. **Aşama 3 — Rol Tabanlı Yetkilendirme & Profil Motoru (`core/auth.py`):**
-   * Anıl (Admin PIN) ve Atlas (Junior) profilleri kodlanır.
-   * Menüden Bütçe ve Fitness'ın filtrelenmesi ve Kütüphane içi yönetici kilidi kurulur.
+   * Anıl (Admin PIN), Berna (Menü & Sağlık PIN), Atlas (Junior) ve Alina (Junior) profilleri kodlanır.
+   * Çocuklar için Bütçe ve Fitness filtreleme ile Kütüphane içi ebeveyn kilidi kurulur.
 4. **Aşama 4 — Secrets ve Bağımlılıkların Konsolidasyonu:**
    * 4 projenin `requirements.txt` dosyaları tek bir temiz dosyada birleştirilir.
-   * `secrets.toml` dosyasına admin PIN hash'i, GitHub token'ları ve iCal URL'leri eklenir.
+   * `secrets.toml` dosyasına PIN hash'leri, GitHub token'ları ve iCal URL'leri eklenir.
 5. **Aşama 5 — Test Güvencesi:**
    * Yetki sızdırmazlık testleri (`test_rbac_auth.py`) ve hub testleri koşulur; 100% yeşil test güvencesi sağlanır.
 6. **Aşama 6 — Streamlit Cloud Dağıtımı:**
@@ -226,13 +239,14 @@ Limitleriniz açıldığında aşağıdaki blok metni doğrudan kopyalayarak asi
 ```text
 Merhaba! Depomuzdaki "docs/ATES_FAM_MASTER_SUITE_ARCHITECTURE.md" dosyasında tüm detayları tanımlanmış olan "ATES FAM Master Suite" mimarisine geçmek istiyorum. 
 
-Öncelikli Yetkilendirme Kuralları:
-1. Elimdeki 4 projeyi (Fitness, Budget, Atlas Library ve Flight Radar) tek bir private Streamlit uygulaması altında birleştirmek.
-2. Rol tabanlı yetkilendirme (RBAC) kurmak:
-   - "Atlas" profili seçildiğinde Bütçe ve Fitness kesinlikle görünmeyecek ve URL manipülasyonuna karşı engellenecek. Atlas yalnızca Kütüphane ve Flight Radar'a erişebilecek.
-   - Kütüphane içinde kitap ekleme/silme işlemleri Admin PIN kodu gerektirecek.
-   - "Anıl" profili 4 haneli PIN ile açılarak tüm 4 uygulamaya ve Kütüphane yönetici moduna tam yetkiyle erişecek.
-3. apps/fitness, apps/budget, apps/library ve apps/flight_radar şeklinde modüler monorepo kurmak.
-4. Çift katmanlı SQLite ve GitHub Data Branch kalıcılığını izole korumak.
+Öncelikli Aile Yetkilendirme Kuralları:
+1. Elimdeki 4 projeyi (Fitness, Budget, Library ve Flight) tek bir private Streamlit uygulaması altında birleştirmek.
+2. Netflix tarzı 4 aile profili ve Rol Tabanlı Yetkilendirme (RBAC) kurmak:
+   - "Anıl (Admin)": 4 haneli PIN ile tüm 4 uygulamaya ve tüm modüllere tam yetkili.
+   - "Berna": 4 haneli PIN ile Library ve Flight'a tam erişim; Fitness'ta yalnızca "Menü & Sağlık" modülüne erişim; Budget erişimi.
+   - "Atlas" ve "Alina" (Çocuklar): Şifresiz tek tık giriş. Sadece Library (Okuyucu) ve Flight (Canlı takip) görünür olacak. Budget ve Fitness kesinlikle görünmeyecek ve URL manipülasyonuna karşı engellenecek.
+   - Library içinde kitap silme/ekleme işlemleri ebeveyn PIN kodu gerektirecek.
+3. apps/fitness, apps/budget, apps/library ve apps/flight şeklinde modüler monorepo kurmak.
+4. Çift katmanlı SQLite ve GitHub bağımsız Veri Branch'leri (data-fitness, data-budget, data-library, data-flight) ile veri kalıcılığını %100 izole korumak.
 5. Şartnamedeki 6 aşamalı geçiş yol haritasını sırasıyla ve testleri kırılmadan hayata geçirmeni rica ediyorum.
 ```
