@@ -424,9 +424,11 @@ def test_functional_plan_to_workout_navigation_preserves_workout():
 
 def test_functional_workout_default_before_start_date_is_upper_a():
     """Verify direct navigation to Workout page before start date defaults to kickoff workout (Üst A)."""
+    import datetime as dt
+    future_start = (dt.date.today() + dt.timedelta(days=7)).isoformat()
     with tempfile.TemporaryDirectory() as td:
         os.environ["FITNESS_DB_PATH"] = str(Path(td) / "test.db")
-        at = _run_app("workout")
+        at = _run_app("workout", body={"start_date": future_start})
         assert not at.exception
 
         # Must default to Üst A (kickoff of the program), not Üst B (generic Friday)
