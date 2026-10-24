@@ -59,12 +59,13 @@ ates-fam-suite/                          # Ana Özel Depo (GitHub: Blixembosch/a
 │   │   ├── main.py                      # Library giriş noktası
 │   │   ├── lib/
 │   │   └── data/                        # library.db
-│   └── project4/                        # 📁 4. Proje
+│   └── flight_radar/                    # ✈️ Flight Radar (Canlı Uçuş Takip)
 │       ├── __init__.py
 │       ├── main.py
 │       └── lib/
 └── tests/                               # Suite Testleri
     ├── test_hub_router.py               # Uygulama geçiş ve yönlendirme testleri
+    ├── test_rbac_auth.py                # Rol tabanlı yetki ve profil testleri
     ├── test_state_isolation.py          # State çakışması izolasyon testleri
     └── ...
 ```
@@ -80,52 +81,100 @@ Streamlit'in global `st.session_state` sözlüğü ortak paylaşıldığı için
 * Fitness değişkenleri: `st.session_state["fitness_targets"]`, `st.session_state["fitness_page"]`
 * Budget değişkenleri: `st.session_state["budget_transactions"]`, `st.session_state["budget_month"]`
 * Library değişkenleri: `st.session_state["library_books"]`
+* Flight Radar değişkenleri: `st.session_state["radar_aircraft"]`
 
 ### Kural 2: Bağımsız Veritabanı ve Çift Katmanlı Kalıcılık
 * Her uygulamanın SQLite veritabanı kendi klasöründe (`apps/fitness/data/fitness.db`, `apps/budget/data/budget.db`) izole kalır.
-* GitHub bağımsız `data` branch'i senkronizasyonu (`Blixembosch/fitness:data`, `Blixembosch/budget:data` veya tek bir `ates-fam-suite:data` branch'i) devam eder.
+* GitHub bağımsız `data` branch'i senkronizasyonu devam eder.
 
 ### Kural 3: Bellek (RAM) Optimizasyonu
 * Streamlit Cloud ücretsiz katmanında 1 GB RAM bulunur.
-* Uygulamalar aynı anda bellekte ağır yük tutmaz; kullanıcı menüden **Fitness** seçtiğinde yalnızca Fitness modülleri çalışır, **Budget** seçtiğinde Budget modülleri aktifleşir. Hafif SQLite mimarisi sayesinde 4 uygulama toplamda ~300 MB RAM tüketir (1 GB sınırının çok altındadır).
+* Kullanıcı menüden hangi uygulamayı seçerse yalnızca o uygulama belleğe çağrılır (`lazy import`). Hafif SQLite mimarisi sayesinde 4 uygulama toplamda ~300 MB RAM tüketir (1 GB sınırının çok altındadır).
 
 ---
 
-## 🎨 4. Kullanıcı Deneyimi ve Yönlendirici (Router) Tasarımı
+## 🔐 4. Rol Tabanlı Yetkilendirme & Aile Profil Mimarisi (RBAC)
 
-`app.py` ana giriş noktası aşağıdaki şık, mobil uyumlu ve modern gezinme çubuğunu içerir:
+Kullanıcının kritik gereksinimi: **"Oğlumun Budget ve Fitness sayfalarına erişmesini istemiyorum. Kütüphaneye ve Flight Radar'a erişsin, ancak Kütüphane içinde yönetici işlemleri için şifre koruması olsun."**
+
+Bu gereksinim, Netflix tarzı **Aile Profil Seçimi (Profile Switcher) + İki Kademeli Yetkilendirme (RBAC)** ile çözülür:
+
+### 1. Erişim Matrisi (Authorization Matrix)
+
+| Profil / Kullanıcı | Giriş Yöntemi | 🏋️ Fitness | 💰 Budget | 📚 Atlas Library | ✈️ Flight Radar |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| 👑 **Anıl (Admin / Baba)** | 4 Haneli PIN (`****`) | ✅ Tam Erişim | ✅ Tam Erişim | ✅ Yönetici Modu (Kitap Ekle/Sil/Düzenle) | ✅ Tam Erişim |
+| 🧒 **Atlas (Junior / Çocuk)** | Şifresiz / Tek Tık | ❌ **Görünmez & Engelli** | ❌ **Görünmez & Engelli** | ✅ Okuyucu Modu (Kitap İnceleme & Arama) | ✅ Tam Erişim |
+| 👩 **Eş (Anne / Opsiyonel)** | 4 Haneli PIN | ✅ Menü & Sağlık | ✅ Bütçe İnceleme | ✅ Okuyucu Modu | ✅ Tam Erişim |
+
+### 2. Router Düzeyinde Güvenlik ve URL Manipülasyon Engeli
+Atlas profili aktifken:
+* Menü çubuğunda `[ 💰 Bütçe ]` ve `[ 🏋️ Fitness ]` butonları arayüzde **kesinlikle render edilmez**.
+* Atlas tarayıcı adres satırına elle `?app=budget` veya `?app=fitness` yazsa bile yönlendirici bunu anında yakalar:
+  ```python
+  ALLOWED_APPS = {
+      "atlas": ["library", "flight_radar"],
+      "anil": ["fitness", "budget", "library", "flight_radar"],
+  }
+
+  current_profile = st.session_state.get("active_profile", "atlas")
+  if target_app not in ALLOWED_APPS[current_profile]:
+      st.error("⛔ Bu bölüme erişim yetkiniz bulunmamaktadır.")
+      st.stop()
+  ```
+
+### 3. Kütüphane İçi Yönetici Kilidi (Library Admin Gate)
+* Atlas kütüphane uygulamasını açtığında şu anki gibi kitapları listeleyebilir, arayabilir ve okuma durumunu görebilir.
+* Ancak kütüphane içindeki **"Kitap Sil", "Yeni Kitap Ekle" veya "Katalog Ayarları"** sekmesine/butonuna tıklandığında:
+  * Sistem şık bir modal/popover açar: `"🔒 Bu işlem için Yönetici PIN kodu gereklidir"`.
+  * Yalnızca Anıl'ın bildiği 4 haneli PIN girildiğinde işlem onaylanır.
+
+### 4. PIN Hashleme & Secrets Güvenliği
+* PIN kodları kod içine yazılmaz; `.streamlit/secrets.toml` dosyasında SHA-256 hash olarak saklanır:
+  ```toml
+  [auth]
+  admin_pin_hash = "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3" # Örn: '1234'
+  ```
+
+---
+
+## 🎨 5. Kullanıcı Deneyimi ve Yönlendirici (Router) Tasarımı
 
 ```python
 # app.py (Örnek Master Hub Mantığı)
 import streamlit as st
-from core import layout, theme
+from core import auth, layout, theme
 
 st.set_page_config(page_title="ATES FAM Suite", page_icon="🏛️", layout="wide")
 theme.apply_theme()
 
-selected_app = layout.render_app_switcher()
+# 1. Profil ve Kimlik Doğrulama
+profile = auth.render_profile_bar() # "anil" veya "atlas"
 
-if selected_app == "fitness":
+# 2. Yetkiye Göre Dinamik Menü Çubuğu
+# Atlas ise sadece [📚 Kütüphane] [✈️ Flight Radar] gösterilir
+# Anıl ise [🏋️ Fitness] [💰 Bütçe] [📚 Kütüphane] [✈️ Flight Radar] gösterilir
+selected_app = layout.render_app_switcher(profile)
+
+# 3. Güvenli Modüler Yönlendirme
+if selected_app == "fitness" and auth.can_access(profile, "fitness"):
     from apps.fitness import main as fitness_app
     fitness_app.run()
-elif selected_app == "budget":
+elif selected_app == "budget" and auth.can_access(profile, "budget"):
     from apps.budget import main as budget_app
     budget_app.run()
 elif selected_app == "library":
     from apps.library import main as library_app
-    library_app.run()
-elif selected_app == "project4":
-    from apps.project4 import main as p4_app
-    p4_app.run()
+    is_admin = (profile == "anil")
+    library_app.run(is_admin=is_admin)
+elif selected_app == "flight_radar":
+    from apps.flight_radar import main as radar_app
+    radar_app.run()
 ```
-
-### Görsel Arayüz (App Switcher)
-Ekranın en üstünde veya sol menüde tek tıkla geçiş sağlayan ergonomik butonlar yer alır:
-`[ 🏋️ Fitness ]` &nbsp; `[ 💰 Bütçe ]` &nbsp; `[ 📚 Atlas Kütüphane ]` &nbsp; `[ 📁 4. Proje ]`
 
 ---
 
-## 🚀 5. Adım Adım Geçiş Yol Haritası (Implementation Plan)
+## 🚀 6. Adım Adım Geçiş Yol Haritası (Implementation Plan)
 
 Argon kotası açıldığında takip edilecek 6 aşamalı uygulama planı:
 
@@ -133,33 +182,34 @@ Argon kotası açıldığında takip edilecek 6 aşamalı uygulama planı:
    * GitHub üzerinde `Blixembosch/ates-fam-suite` adında yeni bir **Private** depo oluşturulur.
    * Temel dizin yapısı (`core/`, `apps/`, `.streamlit/`) açılır.
 2. **Aşama 2 — Kodların Taşınması:**
-   * `ATES_FAM_Fitness` deposundaki tüm kodlar (`app.py` -> `main.py`, `lib/` -> `apps/fitness/lib/`) taşınır.
-   * `ATES_FAM_Budget` ve `Atlas Library` depoları aynı şekilde `apps/` altına kopyalanır.
-3. **Aşama 3 — Yönlendirici ve State İzolasyonu:**
-   * `core/layout.py` ve `app.py` Master Router kodlanır.
-   * State çakışmaları temizlenir.
+   * `ATES_FAM_Fitness`, `ATES_FAM_Budget`, `Atlas Library` ve `Flight Radar` kodları `apps/` altına modüler olarak kopyalanır.
+3. **Aşama 3 — Rol Tabanlı Yetkilendirme & Profil Motoru (`core/auth.py`):**
+   * Anıl (Admin PIN) ve Atlas (Junior) profilleri kodlanır.
+   * Menüden Bütçe ve Fitness'ın filtrelenmesi ve Kütüphane içi yönetici kilidi kurulur.
 4. **Aşama 4 — Secrets ve Bağımlılıkların Konsolidasyonu:**
-   * 4 projenin `requirements.txt` dosyaları tek bir temiz dosyada birleştirilir (versiyon çakışmaları çözülür).
-   * Streamlit `secrets.toml` dosyasına tüm token ve URL'ler eklenir.
+   * 4 projenin `requirements.txt` dosyaları tek bir temiz dosyada birleştirilir.
+   * `secrets.toml` dosyasına admin PIN hash'i, GitHub token'ları ve iCal URL'leri eklenir.
 5. **Aşama 5 — Test Güvencesi:**
-   * Hub yönlendiricisi ve uygulama içi işlevler için testler koşulur; 100% yeşil test güvencesi sağlanır.
+   * Yetki sızdırmazlık testleri (`test_rbac_auth.py`) ve hub testleri koşulur; 100% yeşil test güvencesi sağlanır.
 6. **Aşama 6 — Streamlit Cloud Dağıtımı:**
    * `share.streamlit.io` üzerinden `Blixembosch/ates-fam-suite` Private olarak dağıtılır.
-   * Eski public Streamlit linkleri kapatılır.
 
 ---
 
-## 🤖 6. Argon / Antigravity İçin Hazır İstek Komutu (Prompt Template)
+## 🤖 7. Argon / Antigravity İçin Hazır İstek Komutu (Prompt Template)
 
 Limitleriniz açıldığında aşağıdaki blok metni doğrudan kopyalayarak asistana verebilirsiniz:
 
 ```text
-Merhaba! "docs/ATES_FAM_MASTER_SUITE_ARCHITECTURE.md" dosyasında tüm detayları tanımlanmış olan "ATES FAM Master Suite" projesine geçmek istiyorum. 
+Merhaba! Depomuzdaki "docs/ATES_FAM_MASTER_SUITE_ARCHITECTURE.md" dosyasında tüm detayları tanımlanmış olan "ATES FAM Master Suite" mimarisine geçmek istiyorum. 
 
-Hedefim:
-1. Elimdeki 4 projeyi (ATES FAM Fitness, ATES FAM Budget, Atlas Library ve 4. Proje) bu mimari şartnameye uygun olarak tek bir private Streamlit uygulaması altında birleştirmek.
-2. apps/fitness, apps/budget, apps/library ve apps/project4 şeklinde modüler monorepo yapısı kurmak.
-3. app.py içinde şık bir App Switcher yönlendiricisi oluşturmak.
-4. Çift katmanlı SQLite ve GitHub Data Branch kalıcılığını her uygulama için izole korumak.
-5. Dokümandaki 6 aşamalı geçiş yol haritasını sırasıyla ve testleri kırılmadan hayata geçirmeni rica ediyorum.
+Öncelikli Yetkilendirme Kuralları:
+1. Elimdeki 4 projeyi (Fitness, Budget, Atlas Library ve Flight Radar) tek bir private Streamlit uygulaması altında birleştirmek.
+2. Rol tabanlı yetkilendirme (RBAC) kurmak:
+   - "Atlas" profili seçildiğinde Bütçe ve Fitness kesinlikle görünmeyecek ve URL manipülasyonuna karşı engellenecek. Atlas yalnızca Kütüphane ve Flight Radar'a erişebilecek.
+   - Kütüphane içinde kitap ekleme/silme işlemleri Admin PIN kodu gerektirecek.
+   - "Anıl" profili 4 haneli PIN ile açılarak tüm 4 uygulamaya ve Kütüphane yönetici moduna tam yetkiyle erişecek.
+3. apps/fitness, apps/budget, apps/library ve apps/flight_radar şeklinde modüler monorepo kurmak.
+4. Çift katmanlı SQLite ve GitHub Data Branch kalıcılığını izole korumak.
+5. Şartnamedeki 6 aşamalı geçiş yol haritasını sırasıyla ve testleri kırılmadan hayata geçirmeni rica ediyorum.
 ```
