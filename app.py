@@ -9,7 +9,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-from lib import data, nutrition, bodymap, ui, program as P, metrics, insight, sheets, cronometer, store, calendar_sync
+from lib import data, nutrition, bodymap, ui, program as P, metrics, insight, sheets, cronometer, store, calendar_sync, meal_planner
 
 st.set_page_config(page_title="Fitness", page_icon="💪", layout="wide", initial_sidebar_state="collapsed")
 
@@ -1931,316 +1931,554 @@ def page_stats():
         )
 
 
+def _render_meal_planner():
+    st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🥗 Wegovy Uyumlu 4 Öğünlü Menü & Evdeki Malzemeler</div>", unsafe_allow_html=True)
+
+    t = S["targets"]
+    st.markdown(
+        "<div class='fcard' style='background:linear-gradient(135deg, rgba(56,152,255,0.08), rgba(52,211,153,0.08));border-color:rgba(56,152,255,0.3)'>"
+        "<div style='display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px'>"
+        "<div><div style='font-family:Nunito;font-weight:900;font-size:15px;color:var(--fg)'>🎯 Günlük Referans Hedefin</div>"
+        f"<div style='font-size:12.5px;color:var(--fg);margin-top:2px'>🥩 <b>{t['protein']}g Protein</b> &nbsp;·&nbsp; 🥑 <b>{t['fat']}g Yağ</b> &nbsp;·&nbsp; 🍚 <b>{t['carbs']}g Karbonhidrat</b> &nbsp;·&nbsp; 🥦 <b>{FIBER_TARGET}g Lif</b> &nbsp;(~{t['kcal']} kcal)</div></div>"
+        "<div style='font-size:11.5px;color:var(--muted);max-width:440px;line-height:1.4'>"
+        "💡 <b>Neden 4 Öğün?</b> GLP-1 mide boşalmasını yavaşlatır; tek seferde 50g+ protein veya yüksek yağ hazımsızlık yapar. Her öğüne ~35–45g protein ve lif yaymak hem tokluk hem kas koruması sağlar."
+        "</div>"
+        "</div></div>",
+        unsafe_allow_html=True,
+    )
+
+    S.setdefault("meal_planner", {"breakfast": "b1", "lunch": "l1", "snack": "s1", "dinner": "d1"})
+
+    col_preset1, col_preset2 = st.columns([2.5, 1.2], gap="small")
+    with col_preset1:
+        day_options = [
+            ("Pazartesi (Üst A Antrenmanı)", 0),
+            ("Salı (Padel Günü)", 1),
+            ("Çarşamba (Padel Günü)", 2),
+            ("Perşembe (Alt A Antrenmanı)", 3),
+            ("Cuma (Toparlanma)", 4),
+            ("Cumartesi (Üst B Antrenmanı)", 5),
+            ("Pazar (Lif & Sindirim Ağırlıklı)", 6),
+        ]
+        sel_preset_idx = st.selectbox(
+            "📋 Hazır Gün Şablonu Yükle",
+            range(len(day_options)),
+            format_func=lambda i: day_options[i][0],
+            key="mp_preset_select",
+        )
+    with col_preset2:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        if st.button("🔄 Şablonu Menüye Aktar", use_container_width=True, key="btn_apply_preset"):
+            preset = meal_planner.SAMPLE_7DAY_PLAN[sel_preset_idx]
+            for k in ["breakfast", "lunch", "snack", "dinner"]:
+                S["meal_planner"][k] = preset[k]
+                st.session_state[f"mp_sel_{k}"] = preset[k]
+            st.rerun()
+
+    categories = [
+        ("breakfast", "🍳 1. KAHVALTI", "Sabah protein sentezi ve stabil kan şekeri"),
+        ("lunch", "🥗 2. ÖĞLE YEMEĞİ", "Öğleden sonra enerjisi, Padel/antrenman öncesi"),
+        ("snack", "🥤 3. ARA ÖĞÜN / SHAKE", "Hafif toparlanma, evdeki protein atıştırmalıkları"),
+        ("dinner", "🍲 4. AKŞAM YEMEĞİ", "Sindirimi kolay, yüksek lif, kaliteli uyku"),
+    ]
+
+    c_left, c_right = st.columns(2, gap="medium")
+    cols_map = {"breakfast": c_left, "lunch": c_right, "snack": c_left, "dinner": c_right}
+
+    opts_map = {
+        "breakfast": meal_planner.get_meal_options("breakfast"),
+        "lunch": meal_planner.get_meal_options("lunch"),
+        "snack": meal_planner.get_meal_options("snack"),
+        "dinner": meal_planner.get_meal_options("dinner"),
+    }
+
+    for cat_key, cat_title, cat_desc in categories:
+        opts = opts_map[cat_key]
+        cur_id = S["meal_planner"].get(cat_key, opts[0]["id"])
+        ids = [o["id"] for o in opts]
+        if cur_id not in ids:
+            cur_id = ids[0]
+            S["meal_planner"][cat_key] = cur_id
+
+        if f"mp_sel_{cat_key}" not in st.session_state:
+            st.session_state[f"mp_sel_{cat_key}"] = cur_id
+
+        with cols_map[cat_key]:
+            with st.container(border=True):
+                st.markdown(
+                    f"<div style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>{cat_title}</div>"
+                    f"<div style='font-size:11.5px;color:var(--muted);margin-bottom:8px'>{cat_desc}</div>",
+                    unsafe_allow_html=True,
+                )
+                sel_opt_id = st.selectbox(
+                    f"{cat_title} Seçimi",
+                    ids,
+                    format_func=lambda oid, op=opts: next(f"{x['name']} ({x['kcal']} kcal · {x['protein']:.0f}g P)" for x in op if x["id"] == oid),
+                    key=f"mp_sel_{cat_key}",
+                    label_visibility="collapsed",
+                )
+                S["meal_planner"][cat_key] = sel_opt_id
+
+                selected_meal = next(x for x in opts if x["id"] == sel_opt_id)
+
+                home_badges = "".join(
+                    f"<span style='background:rgba(52,211,153,0.15);color:var(--green);padding:2px 7px;border-radius:10px;font-size:10.5px;font-weight:600;margin-right:4px;display:inline-block;margin-bottom:4px'>🏠 {item}</span>"
+                    for item in selected_meal.get("home_items", [])
+                )
+                ing_html = "".join(
+                    f"<li style='margin-bottom:2px;font-size:11.5px;color:var(--fg)'>{ing}</li>"
+                    for ing in selected_meal.get("ingredients", [])
+                )
+
+                st.markdown(
+                    f"<div style='background:var(--surface-2);border-radius:12px;padding:12px;margin-top:6px'>"
+                    f"<div style='font-weight:700;font-size:13px;color:var(--fg)'>{selected_meal['name']}</div>"
+                    f"<div style='font-size:11.5px;color:var(--muted);margin-bottom:6px'>⏱ Hazırlama: {selected_meal.get('prep_time', '5 dk')} · {selected_meal.get('subtitle', '')}</div>"
+                    f"<div style='margin-bottom:8px'>{home_badges}</div>"
+                    f"<ul style='margin:0 0 8px 18px;padding:0'>{ing_html}</ul>"
+                    f"<div style='background:rgba(56,152,255,0.08);border-left:3px solid var(--blue);padding:6px 10px;border-radius:4px;font-size:11.5px;color:var(--fg);margin-bottom:8px'>"
+                    f"💡 <i>{selected_meal.get('wegovy_tip', '')}</i></div>"
+                    f"<div style='display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--fg);background:var(--surface);padding:5px 8px;border-radius:6px;border:1px solid var(--line)'>"
+                    f"<span>🔥 {selected_meal['kcal']} kcal</span>"
+                    f"<span style='color:var(--orange)'>🥩 {selected_meal['protein']:.0f}g P</span>"
+                    f"<span style='color:var(--purple)'>🥑 {selected_meal['fat']:.0f}g Y</span>"
+                    f"<span style='color:var(--teal)'>🍚 {selected_meal['carbs']:.0f}g K</span>"
+                    f"<span style='color:var(--green)'>🥦 {selected_meal['fiber']:.0f}g Lif</span>"
+                    f"</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+    totals = meal_planner.calculate_menu_totals(S["meal_planner"])
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+    kc_delta = totals["kcal"] - t["kcal"]
+    p_delta = totals["protein"] - t["protein"]
+    f_delta = totals["fat"] - t["fat"]
+    c_delta = totals["carbs"] - t["carbs"]
+    fib_delta = totals["fiber"] - FIBER_TARGET
+
+    def _fmt_diff(d: float, unit: str = "g"):
+        sgn = "+" if d >= 0 else ""
+        return f"{sgn}{d:.0f}{unit}"
+
+    tot_tiles = "".join([
+        ui.tile("Toplam Kalori", f"{totals['kcal']}<small> kcal</small>", f"Hedef: {t['kcal']} ({_fmt_diff(kc_delta, ' kcal')})", "good" if abs(kc_delta) <= 100 else ""),
+        ui.tile("Toplam Protein", f"{totals['protein']:.0f}<small> g</small>", f"Hedef: {t['protein']}g ({_fmt_diff(p_delta)})", "good" if totals["protein"] >= t["protein"] - 5 else "warn"),
+        ui.tile("Toplam Yağ", f"{totals['fat']:.0f}<small> g</small>", f"Hedef: {t['fat']}g ({_fmt_diff(f_delta)})", "good" if abs(f_delta) <= 8 else ""),
+        ui.tile("Toplam Karbonhidrat", f"{totals['carbs']:.0f}<small> g</small>", f"Hedef: {t['carbs']}g ({_fmt_diff(c_delta)})", "good" if abs(c_delta) <= 15 else ""),
+        ui.tile("Toplam Lif", f"{totals['fiber']:.0f}<small> g</small>", f"Hedef: {FIBER_TARGET}g ({_fmt_diff(fib_delta)})", "good" if totals["fiber"] >= FIBER_TARGET else "warn"),
+    ])
+    st.markdown(f"<div class='fcard'><div class='eyebrow'>Seçilen 4 Öğünün Günlük Toplamı vs. Hedef</div><div class='tiles'>{tot_tiles}</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown(
+            "<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>"
+            "<span style='font-size:18px'>📱</span>"
+            "<span style='font-family:Nunito;font-weight:900;font-size:14px;color:var(--fg)'>Eşine Gönder & WhatsApp Menü Bildirimi</span>"
+            "</div>"
+            "<div style='font-size:12px;color:var(--muted);margin-bottom:8px'>"
+            "Her akşam bir gün sonrasının menüsünü belirleyip aşağıdaki metni tek tıkla kopyalayarak WhatsApp üzerinden eşine gönderebilirsin. Böylece evdeki akşam yemeği ve ortak hazırlıklar senkronize olur."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        wa_text = meal_planner.format_whatsapp_daily_plan(S["meal_planner"], day_label="Yarınki")
+        st.code(wa_text, language="markdown")
+        st.caption("📋 Yukarıdaki kutucuğun sağ üst köşesindeki kopyalama simgesine tıklayarak WhatsApp'a doğrudan yapıştırabilirsin.")
+
+
+def _render_weekly_grocery():
+    st.markdown("<div class='eyebrow' style='margin:4px 0 10px'>🛒 7 Günlük Dengeli Menü & Albert Heijn Alışveriş Listesi</div>", unsafe_allow_html=True)
+
+    tab_w_plan, tab_w_groc = st.tabs(["🗓 7 Günlük Örnek Menü Planı", "🛍 Albert Heijn Alışveriş Listesi"])
+
+    with tab_w_plan:
+        st.markdown(
+            "<div style='font-size:12.5px;color:var(--muted);margin-bottom:12px'>"
+            "Haftalık antrenman (Pazar Üst A, Salı Padel, Çarşamba Padel, Perşembe Alt A, Cumartesi Üst B) programına göre optimize edilmiş 7 günlük örnek beslenme planı:"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        for p in meal_planner.SAMPLE_7DAY_PLAN:
+            day_tots = meal_planner.calculate_menu_totals({
+                "breakfast": p["breakfast"],
+                "lunch": p["lunch"],
+                "snack": p["snack"],
+                "dinner": p["dinner"],
+            })
+            b_item = day_tots["items"]["breakfast"]
+            l_item = day_tots["items"]["lunch"]
+            s_item = day_tots["items"]["snack"]
+            d_item = day_tots["items"]["dinner"]
+            focus_lbl = p.get("focus", p.get("workout_focus", ""))
+            with st.expander(f"📅 **{p['day']}** — {focus_lbl} ({day_tots['kcal']} kcal · {day_tots['protein']:.0f}g P · {day_tots['fiber']:.0f}g Lif)"):
+                st.markdown(
+                    f"<div style='font-size:12.5px;line-height:1.6;color:var(--fg)'>"
+                    f"🍳 <b>Kahvaltı:</b> {b_item['name']} ({b_item['kcal']} kcal · {b_item['protein']:.0f}g P)<br>"
+                    f"🥗 <b>Öğle:</b> {l_item['name']} ({l_item['kcal']} kcal · {l_item['protein']:.0f}g P)<br>"
+                    f"🥤 <b>Ara Öğün:</b> {s_item['name']} ({s_item['kcal']} kcal · {s_item['protein']:.0f}g P)<br>"
+                    f"🍲 <b>Akşam:</b> {d_item['name']} ({d_item['kcal']} kcal · {d_item['protein']:.0f}g P)<br>"
+                    f"<div style='margin-top:6px;padding-top:6px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted)'>"
+                    f"🎯 <b>Günlük Toplam:</b> {day_tots['kcal']} kcal &nbsp;·&nbsp; 🥩 {day_tots['protein']:.0f}g Protein &nbsp;·&nbsp; 🥑 {day_tots['fat']:.0f}g Yağ &nbsp;·&nbsp; 🍚 {day_tots['carbs']:.0f}g Karb &nbsp;·&nbsp; 🥦 {day_tots['fiber']:.0f}g Lif"
+                    f"</div></div>",
+                    unsafe_allow_html=True,
+                )
+
+    with tab_w_groc:
+        st.markdown(
+            "<div style='font-size:12.5px;color:var(--muted);margin-bottom:12px'>"
+            "Aşağıdaki liste 7 günlük plan için Albert Heijn (Hollanda) reyonlarına göre ayrılmıştır. Evdeki mevcut stoklar (kwark, whey, fitmousse vb.) işaretlenmiştir."
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        grocery_dict = meal_planner.generate_grocery_list()
+
+        col1, col2 = st.columns(2, gap="medium")
+        cats = list(grocery_dict.keys())
+        for idx, cat in enumerate(cats):
+            target_col = col1 if idx % 2 == 0 else col2
+            with target_col:
+                with st.container(border=True):
+                    st.markdown(f"<div style='font-family:Nunito;font-weight:900;font-size:13.5px;color:var(--fg);margin-bottom:6px'>{cat}</div>", unsafe_allow_html=True)
+                    for itm in grocery_dict[cat]:
+                        st.markdown(f"<div style='font-size:12px;color:var(--fg);margin-bottom:3px'>• {itm}</div>", unsafe_allow_html=True)
+
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(
+                "<div style='font-family:Nunito;font-weight:900;font-size:13.5px;color:var(--fg);margin-bottom:4px'>📱 Alışveriş Listesini WhatsApp ile Paylaş</div>"
+                "<div style='font-size:11.5px;color:var(--muted);margin-bottom:8px'>Eşinizle birlikte veya Albert Heijn'a gitmeden önce listenizi WhatsApp'a kopyalayın:</div>",
+                unsafe_allow_html=True,
+            )
+            groc_wa = meal_planner.format_whatsapp_grocery_list(grocery_dict)
+            st.code(groc_wa, language="markdown")
+
+
 def page_nutrition():
     st.markdown(
         ui.page_header("Beslenme & Wegovy", "Makro takibi, kalori açığı ve GLP-1 (Wegovy) protokolü"),
         unsafe_allow_html=True,
     )
-    with st.container(border=True):
-        st.markdown("<div class='eyebrow' style='margin:0 0 6px'>📄 Cronometer CSV Yükle</div>", unsafe_allow_html=True)
-        ups = st.file_uploader("Cronometer CSV yükle (dailysummary · biometrics · exercises)",
-                               type="csv", accept_multiple_files=True, label_visibility="collapsed")
-        if ups:
-            msgs = []
-            for f in ups:
-                raw = f.getvalue()
-                head = raw[:600].decode("utf-8-sig", "replace")
-                kind = cronometer.detect(head)
-                try:
-                    if kind == "nutrition":
-                        S["nutrition"] = nutrition.parse_cronometer(raw)
-                        msgs.append(f"beslenme {len(S['nutrition'])} gün")
-                    elif kind == "biometrics":
-                        bw = cronometer.parse_biometrics(raw)
-                        rows = {x["date"]: x["w"] for x in S["weights"]}
-                        for x in bw:
-                            rows[x["date"]] = x["w"]
-                        S["weights"] = [{"date": k, "w": v} for k, v in rows.items()]
-                        msgs.append(f"kilo {len(bw)} ölçüm")
-                    elif kind == "exercises":
-                        ex = cronometer.parse_exercises(raw)
-                        S["cron_ex"] = ex.to_dict("records")
-                        S["active_kcal"] = {r["date"]: r["kcal"] for r in cronometer.parse_active_energy(raw)}
-                        npad = int(ex["padel"].sum()) if not ex.empty and "padel" in ex else 0
-                        msgs.append(f"spor {len(ex)} seans ({npad} padel)")
-                    else:
-                        msgs.append(f"{f.name}: tanınmadı")
-                except Exception:  # noqa: BLE001
-                    msgs.append(f"{f.name}: okunamadı")
-            compute_targets()
-            _save()
-            st.success("Yüklendi ve kalıcı veritabanına kaydedildi → " + " · ".join(msgs))
 
-    nt = nutrition_today()
-    t = S["targets"]
-    pband = S["protein_band"]
-    if nt:
-        ds = nutrition.day_summary(nt, t)
-        kc = ds["kcal"]
-        pct = min(1, (kc["consumed"] / kc["target"]) if kc["target"] else 0)
+    tab_log, tab_plan, tab_grocery = st.tabs([
+        "📊 Günlük Takip & Makrolar",
+        "🥗 4 Öğünlü Akıllı Menü (Evdeki Malzemelerle)",
+        "🛒 7 Günlük Menü & Alışveriş Listesi (Albert Heijn)",
+    ])
+
+    with tab_log:
+        with st.container(border=True):
+            st.markdown("<div class='eyebrow' style='margin:0 0 6px'>📄 Cronometer CSV Yükle</div>", unsafe_allow_html=True)
+            ups = st.file_uploader("Cronometer CSV yükle (dailysummary · biometrics · exercises)",
+                                   type="csv", accept_multiple_files=True, label_visibility="collapsed")
+            if ups:
+                msgs = []
+                for f in ups:
+                    raw = f.getvalue()
+                    head = raw[:600].decode("utf-8-sig", "replace")
+                    kind = cronometer.detect(head)
+                    try:
+                        if kind == "nutrition":
+                            S["nutrition"] = nutrition.parse_cronometer(raw)
+                            msgs.append(f"beslenme {len(S['nutrition'])} gün")
+                        elif kind == "biometrics":
+                            bw = cronometer.parse_biometrics(raw)
+                            rows = {x["date"]: x["w"] for x in S["weights"]}
+                            for x in bw:
+                                rows[x["date"]] = x["w"]
+                            S["weights"] = [{"date": k, "w": v} for k, v in rows.items()]
+                            msgs.append(f"kilo {len(bw)} ölçüm")
+                        elif kind == "exercises":
+                            ex = cronometer.parse_exercises(raw)
+                            S["cron_ex"] = ex.to_dict("records")
+                            S["active_kcal"] = {r["date"]: r["kcal"] for r in cronometer.parse_active_energy(raw)}
+                            npad = int(ex["padel"].sum()) if not ex.empty and "padel" in ex else 0
+                            msgs.append(f"spor {len(ex)} seans ({npad} padel)")
+                        else:
+                            msgs.append(f"{f.name}: tanınmadı")
+                    except Exception:  # noqa: BLE001
+                        msgs.append(f"{f.name}: okunamadı")
+                compute_targets()
+                _save()
+                st.success("Yüklendi ve kalıcı veritabanına kaydedildi → " + " · ".join(msgs))
+
+        nt = nutrition_today()
+        t = S["targets"]
+        pband = S["protein_band"]
+        if nt:
+            ds = nutrition.day_summary(nt, t)
+            kc = ds["kcal"]
+            pct = min(1, (kc["consumed"] / kc["target"]) if kc["target"] else 0)
+            st.markdown(
+                "<div class='fcard'><div style='display:flex;align-items:center;gap:18px'>"
+                + ui.ring_svg(pct, "var(--green)", size=84)
+                + f"<div><div style='font-family:Nunito;font-weight:900;font-size:22px;color:var(--fg)'>{int(kc['consumed'])} <small style='color:var(--muted);font-size:13px'>/ {int(kc['target'])}</small></div>"
+                f"<div class='muted' style='font-size:12px'>kcal · {int(kc['remaining'])} kaldı</div></div></div></div>",
+                unsafe_allow_html=True,
+            )
+            fib_val = round(float(nt.get("fiber") or 0))
+            fib_pct = round(fib_val / FIBER_TARGET * 100) if FIBER_TARGET else 0
+            p_rem = int(ds['protein']['remaining']) if ds['protein']['remaining'] is not None else 0
+            c_rem = int(ds['carbs']['remaining']) if ds['carbs']['remaining'] is not None else 0
+            f_rem = int(ds['fat']['remaining']) if ds['fat']['remaining'] is not None else 0
+            fib_rem = max(0, FIBER_TARGET - fib_val)
+            bars = "".join([
+                ui.bar(f"Protein (hedef bant {pband['min']}–{pband['max']}g)", f"{int(ds['protein']['consumed'])} / {ds['protein']['target']} g ({p_rem}g kaldı)", ds['protein']['pct'] or 0, "var(--orange)", primary=True),
+                ui.bar("Karbonhidrat (Padel/güç glikojeni)", f"{int(ds['carbs']['consumed'])} / {ds['carbs']['target']} g ({c_rem}g kaldı)", ds['carbs']['pct'] or 0, "var(--teal)"),
+                ui.bar("Yağ (hormon & tokluk desteği)", f"{int(ds['fat']['consumed'])} / {ds['fat']['target']} g ({f_rem}g kaldı)", ds['fat']['pct'] or 0, "var(--purple)"),
+                ui.bar("Lif (Wegovy sindirim desteği)", f"{fib_val} / {FIBER_TARGET} g ({fib_rem}g kaldı)", fib_pct, "var(--green)"),
+            ])
+            st.markdown(f"<div class='fcard'><div class='eyebrow'>Makrolar · bugün</div><div class='bars'>{bars}</div></div>", unsafe_allow_html=True)
+            if S["nutrition"] is not None and not S["nutrition"].empty:
+                post_nut = S["nutrition"][S["nutrition"]["date"] >= START_ISO]
+                last7 = post_nut.tail(7)
+                if len(last7) > 1:
+                    st.markdown("<div class='eyebrow'>Son günler · Makro Trendi</div>", unsafe_allow_html=True)
+                    tab_prot, tab_all = st.tabs(["🥩 Protein Trendi", "📊 Tüm Makrolar (Protein / Karb / Yağ)"])
+                    with tab_prot:
+                        fig = go.Figure(go.Bar(x=last7["date"], y=last7["protein"], marker_color="#fb923c", name="Protein"))
+                        fig.add_hline(y=pband["min"], line_dash="dot", line_color="#34d399", annotation_text=f"Alt sınır ({pband['min']}g)")
+                        fig.add_hline(y=t["protein"], line_dash="dash", line_color="#94a3b8", annotation_text=f"Hedef ({t['protein']}g)")
+                        fig.update_layout(height=180, margin=dict(l=0, r=0, t=6, b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#94a3b8"))
+                        fig.update_xaxes(showgrid=False)
+                        fig.update_yaxes(gridcolor="rgba(148,163,184,.12)", ticksuffix=" g")
+                        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+                    with tab_all:
+                        fig2 = go.Figure()
+                        fig2.add_trace(go.Bar(x=last7["date"], y=last7["protein"], name="Protein", marker_color="#fb923c"))
+                        if "carbs" in last7.columns:
+                            fig2.add_trace(go.Bar(x=last7["date"], y=last7["carbs"], name="Karb", marker_color="#2dd4bf"))
+                        if "fat" in last7.columns:
+                            fig2.add_trace(go.Bar(x=last7["date"], y=last7["fat"], name="Yağ", marker_color="#c084fc"))
+                        fig2.update_layout(barmode="group", height=200, margin=dict(l=0, r=0, t=6, b=0),
+                                           paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                                           font=dict(color="#94a3b8"))
+                        fig2.update_xaxes(showgrid=False)
+                        fig2.update_yaxes(gridcolor="rgba(148,163,184,.12)", ticksuffix=" g")
+                        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+        else:
+            b_fat_pct = round(float(S["body"].get("fat_pct") or 0.30) * 100)
+            p_pct = round((t["protein"] * 4) / t["kcal"] * 100) if t["kcal"] else 32
+            c_pct = round((t["carbs"] * 4) / t["kcal"] * 100) if t["kcal"] else 38
+            tiles_html = "".join([
+                ui.tile("Kalori Hedefi", f"{t['kcal']}<small> kcal</small>", f"~{S.get('deficit_now', 500)} kcal açık"),
+                ui.tile("Protein Hedefi", f"{t['protein']}<small> g</small>", f"Bant: {pband['min']}–{pband['max']}g · %{p_pct}", "good"),
+                ui.tile("Sağlıklı Yağ", f"{t['fat']}<small> g</small>", f"Tokluk & Hormon · %{b_fat_pct}"),
+                ui.tile("Karbonhidrat", f"{t['carbs']}<small> g</small>", f"Padel & Kas Glikojeni · %{c_pct}"),
+                ui.tile("Lif Hedefi", f"{FIBER_TARGET}<small> g</small>", "Wegovy GI Konforu", "good"),
+            ])
+            st.markdown(f"<div class='tiles' style='margin-bottom:12px'>{tiles_html}</div>", unsafe_allow_html=True)
+            st.info("Cronometer'dan **dailysummary.csv** yükle; gün içindeki tüketimini ve kalan makrolarını yukarıdaki hedeflere göre canlı karşılaştırırım.")
+
+        with st.container(border=True):
+            st.markdown("<div class='eyebrow' style='margin:0 0 8px'>⚖️ Manuel Kilo Kaydet</div>", unsafe_allow_html=True)
+            c1, c2 = st.columns([2.5, 1], gap="small")
+            nw = c1.number_input("kg", min_value=40.0, max_value=250.0, value=float(latest_weight()[0] or 100.0), step=0.1, label_visibility="collapsed")
+            if c2.button("Kaydet", use_container_width=True, key="nut_weight_save"):
+                iso = TODAY.strftime("%Y-%m-%d")
+                S["weights"] = [x for x in S["weights"] if x["date"] != iso] + [{"date": iso, "w": round(nw, 1)}]
+                compute_targets()
+                _save()
+                st.success("Kalıcı olarak kaydedildi ✓")
+                st.rerun()
+
+        ws = wegovy_status()
+        with st.expander(f"💉 Wegovy doz & enjeksiyon takibi ({ws['dose_mg']:g} mg · her {ws['inj_day_name']})", expanded=ws["days_until"] == 0):
+            wc1, wc2, wc3 = st.columns([1.2, 1.3, 1.5])
+            cur_dose = ws["dose_mg"] if ws["dose_mg"] in WEGOVY_DOSES else 0.25
+            new_dose = wc1.selectbox("Mevcut doz (mg)", WEGOVY_DOSES, index=WEGOVY_DOSES.index(cur_dose),
+                                     format_func=lambda x: f"{x:g} mg")
+            new_wd = wc2.selectbox("Haftalık enjeksiyon günü", list(range(7)), index=ws["inj_weekday"],
+                                   format_func=lambda i: DOW_LONG[i])
+            sel_site = wc3.selectbox("Enjeksiyon bölgesi (rotasyon)", WEGOVY_SITES,
+                                     index=WEGOVY_SITES.index(ws["next_site"]))
+            if new_dose != S["wegovy"].get("dose_mg") or new_wd != S["wegovy"].get("inj_weekday"):
+                S["wegovy"]["dose_mg"] = float(new_dose)
+                S["wegovy"]["inj_weekday"] = int(new_wd)
+                _save()
+                st.rerun()
+            lc1, lc2 = st.columns([2, 1])
+            inj_date = lc1.date_input("Enjeksiyon tarihi", value=TODAY, max_value=TODAY, format="DD.MM.YYYY", key="weg_dt")
+            if lc2.button("💉 Dozu kaydet", use_container_width=True, type="primary"):
+                iso_d = inj_date.isoformat()
+                logs = [x for x in S["wegovy"].get("logs", []) if x.get("date") != iso_d]
+                logs.append({"date": iso_d, "dose": float(new_dose), "site": sel_site})
+                S["wegovy"]["logs"] = sorted(logs, key=lambda x: x["date"])
+                _save()
+                st.success(f"{iso_d} · {new_dose:g} mg ({sel_site}) kaydedildi ✓")
+                st.rerun()
+            logs = S["wegovy"].get("logs") or []
+            if logs:
+                recent_logs = " · ".join(f"**{x['date']}** ({x['dose']:g} mg, {x.get('site','')})" for x in reversed(logs[-4:]))
+                st.caption(f"Son kayıtlar: {recent_logs}")
+            st.caption("💡 Standart titrasyon: 4 haftada bir 0.25 → 0.5 → 1.0 → 1.7 → 2.4 mg (hekim kontrolünde). Enjeksiyon sonrası ilk 48 saatte uygulama RPE hedefini otomatik esnetir.")
+
+        cx = cron_ex_df()
+        if not cx.empty or S["nutrition"] is not None or S["weights"]:
+            nd = len(S["nutrition"]) if S["nutrition"] is not None else 0
+            npad = int(cx["padel"].sum()) if not cx.empty and "padel" in cx else 0
+            st.caption(f"📄 Cronometer: {nd} gün beslenme · {len(S['weights'])} kilo · {len(cx)} seans ({npad} padel) · {len(S['active_kcal'])} gün aktif enerji")
+        else:
+            st.caption("📄 Cronometer'dan dışa aktardığın dosyaları yukarıdan yükle — tek kaynak.")
+
+        wkg = latest_weight()[0] or 100.0
+        with st.expander("⚙️ Hedef ayarları (kalori, protein yöntemi, yaş, boy, aktivite)"):
+            b = S["body"]
+            prev_snapshot = json.dumps(b, sort_keys=True)
+            use_manual = st.checkbox("Kaloriyi elle belirle", value=b.get("kcal_goal") is not None,
+                                     help="Kapalıyken hedef, TDEE − açık ile otomatik hesaplanır.")
+            if use_manual:
+                b["kcal_goal"] = int(st.number_input("Günlük kalori hedefi (kcal)", 1200, 3500,
+                                                     int(b.get("kcal_goal") or 2000), step=50))
+                st.caption(f"~0,5–1%/hafta (bu kiloda ~{wkg*0.005:.1f}–{wkg*0.01:.1f} kg) kas koruma için ideal bant.")
+            else:
+                b["kcal_goal"] = None
+                b["deficit"] = int(st.number_input("Günlük kalori açığı (TDEE'den)", 0, 1200, int(b.get("deficit") or 500), step=50))
+            pmodes = ["adjusted", "strict"]
+            cur_pm = b.get("protein_mode", "adjusted")
+            b["protein_mode"] = st.selectbox(
+                "Protein hedefi hesaplama yöntemi",
+                pmodes,
+                index=pmodes.index(cur_pm if cur_pm in pmodes else "adjusted"),
+                format_func=lambda m: (
+                    "Düzeltilmiş ağırlık bandı (150–180g · Wegovy için sürdürülebilir — Önerilen)"
+                    if m == "adjusted" else
+                    "Tam vücut ağırlığı × 1.8 g/kg (Katı hedef)"
+                ),
+            )
+            fat_options = {
+                "balanced": "Dengeli (Wegovy Uyumlu) — %30 Yağ / %38 Karb (Önerilen)",
+                "low_fat": "Düşük Yağ — %25 Yağ / %43 Karb (Mide hassasiyeti için)",
+                "moderate_fat": "Orta Yağ — %35 Yağ / %33 Karb (Daha yüksek tokluk)",
+                "custom": "Özel Yüzde (Slider ile belirle)",
+            }
+            cur_fm = b.get("fat_mode", "balanced")
+            if cur_fm not in fat_options:
+                cur_fm = "balanced"
+            sel_fm = st.selectbox(
+                "🥑 Yağ & 🍚 Karbonhidrat dağılım tercihi",
+                list(fat_options.keys()),
+                index=list(fat_options.keys()).index(cur_fm),
+                format_func=lambda k: fat_options[k],
+                help="Wegovy kullanırken yüksek yağlı besinler mide boşalmasını geciktirerek bulantı veya reflüyü tetikleyebilir. %25–35 yağ ideal sindirim sağlar; kalan kalori ise antrenman ve Padel için glikojene (karbonhidrata) ayrılır.",
+            )
+            b["fat_mode"] = sel_fm
+            if sel_fm == "balanced":
+                b["fat_pct"] = 0.30
+            elif sel_fm == "low_fat":
+                b["fat_pct"] = 0.25
+            elif sel_fm == "moderate_fat":
+                b["fat_pct"] = 0.35
+            else:
+                cur_pct = int(round(float(b.get("fat_pct") or 0.30) * 100))
+                new_pct = st.slider("Yağ Kalori Payı (%)", 20, 45, cur_pct, step=1)
+                b["fat_pct"] = round(new_pct / 100.0, 2)
+
+            preview_kcal = int(b.get("kcal_goal") or 2000)
+            pband_prev = nutrition.protein_band(wkg, int(b.get("height") or 178), mode=b.get("protein_mode", "adjusted"))
+            prev_prot = pband_prev["target"]
+            prev_fat = round(preview_kcal * float(b["fat_pct"]) / 9)
+            prev_carb = max(0, round((preview_kcal - prev_prot * 4 - prev_fat * 9) / 4))
+            p_prev_pct = round((prev_prot * 4) / preview_kcal * 100)
+            f_prev_pct = round((prev_fat * 9) / preview_kcal * 100)
+            c_prev_pct = max(0, 100 - p_prev_pct - f_prev_pct)
+            st.caption(
+                f"🎯 **Güncel Dağılım ({preview_kcal} kcal):** "
+                f"🥩 **{prev_prot}g Protein** ({prev_prot*4} kcal · %{p_prev_pct}) &nbsp;·&nbsp; "
+                f"🥑 **{prev_fat}g Yağ** ({prev_fat*9} kcal · %{f_prev_pct}) &nbsp;·&nbsp; "
+                f"🍚 **{prev_carb}g Karb** ({prev_carb*4} kcal · %{c_prev_pct}) &nbsp;·&nbsp; "
+                f"🥦 **{FIBER_TARGET}g Lif**"
+            )
+            bd = st.date_input("Doğum tarihi", value=dt.date.fromisoformat(b.get("birth", "1992-03-12")),
+                               min_value=dt.date(1940, 1, 1), max_value=TODAY, format="DD.MM.YYYY")
+            b["birth"] = bd.isoformat()
+            st.caption(f"Yaş: {age_from(b['birth'])}")
+            b["height"] = int(st.number_input("Boy (cm)", 120, 220, int(b["height"])))
+            acts = ["light", "moderate", "high"]
+            b["activity"] = st.selectbox("Aktivite düzeyi", acts, index=acts.index(b["activity"]),
+                                         format_func=lambda x: {"light": "Az hareketli (masa başı)", "moderate": "Orta", "high": "Yüksek"}[x])
+            cur_ptarg = int(b.get("padel_target") or 2)
+            b["padel_target"] = int(st.number_input("Haftalık Padel hedefi (seans/hafta)", 1, 7, cur_ptarg, step=1,
+                                                    help="Padel sıklığınıza göre esnek değiştirebilirsiniz (Varsayılan: 2 seans/hafta)."))
+
+            cur_start_date = dt.date.fromisoformat(b.get("start_date") or "2026-10-25")
+            st.markdown("<div style='margin-top:10px;font-weight:700;font-size:12.5px;color:var(--fg)'>Resmi Program Başlangıç Tarihi</div>", unsafe_allow_html=True)
+            col_sd, col_btn25, col_btn26 = st.columns([2, 1, 1], gap="small")
+            with col_sd:
+                new_sd = st.date_input("Başlangıç tarihi", value=cur_start_date, min_value=dt.date(2026, 10, 1),
+                                       max_value=dt.date(2026, 12, 31), format="DD.MM.YYYY", label_visibility="collapsed")
+            with col_btn25:
+                if st.button("25 Ekim", use_container_width=True, key="sd_btn_25"):
+                    new_sd = dt.date(2026, 10, 25)
+            with col_btn26:
+                if st.button("26 Ekim", use_container_width=True, key="sd_btn_26"):
+                    new_sd = dt.date(2026, 10, 26)
+            b["start_date"] = new_sd.isoformat()
+            st.caption("İğnenin eve varışına göre 25 veya 26 Ekim'i seçebilirsiniz. Tüm sayaçlar, haritalar ve istatistikler bu tarihten itibaren başlar.")
+
+            if json.dumps(b, sort_keys=True) != prev_snapshot:
+                compute_targets()
+                _save()
+                st.toast("Hedef ayarların kalıcı olarak kaydedildi ✓")
+            st.caption("Kilo değiştikçe hedefler otomatik güncellenir ve yerel SQLite veritabanında saklanır.")
+
+            st.markdown("<hr style='margin:14px 0 10px;border-color:var(--line)'>", unsafe_allow_html=True)
+            st.markdown("<div style='font-weight:800;font-size:12.5px;color:var(--fg)'>📅 Google Takvim Entegrasyonu</div>", unsafe_allow_html=True)
+            try:
+                sec_url = st.secrets.get("GOOGLE_CALENDAR_ICAL_URL") or st.secrets.get("GCAL_ICAL_URL")
+            except Exception:
+                sec_url = None
+            cur_cal_url = sec_url or S.get("settings", {}).get("gcal_url", "")
+            cal_events = calendar_padel_events()
+            if sec_url:
+                st.success(f"✓ Google Takvim `secrets.toml` üzerinden bağlı ({len(cal_events)} Padel seansı tespit edildi).")
+            elif cur_cal_url:
+                st.success(f"✓ Google Takvim bağlı ({len(cal_events)} Padel seansı tespit edildi).")
+            else:
+                st.caption("Google Takvim'den Padel maçlarını otomatik çekmek için gizli iCal linkinizi `.streamlit/secrets.toml` dosyasına veya aşağıdaki kutuya ekleyebilirsiniz.")
+
+            new_cal_url = st.text_input(
+                "Google Takvim Gizli iCal URL'si (.ics)",
+                value=cur_cal_url or "",
+                type="password",
+                help="Google Takvim → Ayarlar → İlgili Takvim → iCal biçiminde gizli adres",
+                key="gcal_url_input",
+                disabled=bool(sec_url),
+            )
+            if not sec_url and new_cal_url != (S.get("settings", {}).get("gcal_url") or ""):
+                S.setdefault("settings", {})["gcal_url"] = new_cal_url.strip()
+                _save()
+                st.cache_data.clear()
+                st.rerun()
+
+        t = S["targets"]
+        pband = S["protein_band"]
+        wl = S.get("weekly_loss", 0.0)
+        wlpct = (wl / wkg * 100) if wkg else 0
+        manual = S["body"].get("kcal_goal") is not None
+        src = "elle seçtiğin hedef" if manual else f"TDEE ~{S['tdee']} − {S['body']['deficit']} açık"
+        prot_desc = (
+            f"<b>{t['protein']} g protein</b> (kas koruma bandı: <b>{pband['min']}–{pband['max']} g</b> · düzeltilmiş {pband['eff_weight']} kg)"
+            if pband.get("mode") == "adjusted" else
+            f"<b>{t['protein']} g protein</b> (~{PROTEIN_PER_KG} g/kg tam ağırlık)"
+        )
         st.markdown(
-            "<div class='fcard'><div style='display:flex;align-items:center;gap:18px'>"
-            + ui.ring_svg(pct, "var(--green)", size=84)
-            + f"<div><div style='font-family:Nunito;font-weight:900;font-size:22px;color:var(--fg)'>{int(kc['consumed'])} <small style='color:var(--muted);font-size:13px'>/ {int(kc['target'])}</small></div>"
-            f"<div class='muted' style='font-size:12px'>kcal · {int(kc['remaining'])} kaldı</div></div></div></div>",
+            f"<div class='fcard' style='margin-top:8px'><div class='eyebrow'>Senin için hesaplanan hedef</div>"
+            f"<div style='font-size:12.5px;line-height:1.6;color:var(--fg)'><b>{t['kcal']} kcal/gün</b> ({src})"
+            f"&nbsp;·&nbsp;{prot_desc}"
+            f"&nbsp;·&nbsp;{t['carbs']} g karb · {t['fat']} g yağ · {FIBER_TARGET} g lif</div>"
+            f"<div style='margin-top:8px;font-size:12px;color:var(--fg)'>📉 Tahmini kayıp: <b class='good'>~{wl:.2f} kg/hafta</b> "
+            f"(<span class='muted'>%{wlpct:.2f}/hafta · günde ~{S.get('deficit_now',0)} kcal açık</span>)</div></div>",
             unsafe_allow_html=True,
         )
-        fib_val = round(float(nt.get("fiber") or 0))
-        fib_pct = round(fib_val / FIBER_TARGET * 100) if FIBER_TARGET else 0
-        p_rem = int(ds['protein']['remaining']) if ds['protein']['remaining'] is not None else 0
-        c_rem = int(ds['carbs']['remaining']) if ds['carbs']['remaining'] is not None else 0
-        f_rem = int(ds['fat']['remaining']) if ds['fat']['remaining'] is not None else 0
-        fib_rem = max(0, FIBER_TARGET - fib_val)
-        bars = "".join([
-            ui.bar(f"Protein (hedef bant {pband['min']}–{pband['max']}g)", f"{int(ds['protein']['consumed'])} / {ds['protein']['target']} g ({p_rem}g kaldı)", ds['protein']['pct'] or 0, "var(--orange)", primary=True),
-            ui.bar("Karbonhidrat (Padel/güç glikojeni)", f"{int(ds['carbs']['consumed'])} / {ds['carbs']['target']} g ({c_rem}g kaldı)", ds['carbs']['pct'] or 0, "var(--teal)"),
-            ui.bar("Yağ (hormon & tokluk desteği)", f"{int(ds['fat']['consumed'])} / {ds['fat']['target']} g ({f_rem}g kaldı)", ds['fat']['pct'] or 0, "var(--purple)"),
-            ui.bar("Lif (Wegovy sindirim desteği)", f"{fib_val} / {FIBER_TARGET} g ({fib_rem}g kaldı)", fib_pct, "var(--green)"),
-        ])
-        st.markdown(f"<div class='fcard'><div class='eyebrow'>Makrolar · bugün</div><div class='bars'>{bars}</div></div>", unsafe_allow_html=True)
-        if S["nutrition"] is not None and not S["nutrition"].empty:
-            post_nut = S["nutrition"][S["nutrition"]["date"] >= START_ISO]
-            last7 = post_nut.tail(7)
-            if len(last7) > 1:
-                st.markdown("<div class='eyebrow'>Son günler · Makro Trendi</div>", unsafe_allow_html=True)
-                tab_prot, tab_all = st.tabs(["🥩 Protein Trendi", "📊 Tüm Makrolar (Protein / Karb / Yağ)"])
-                with tab_prot:
-                    fig = go.Figure(go.Bar(x=last7["date"], y=last7["protein"], marker_color="#fb923c", name="Protein"))
-                    fig.add_hline(y=pband["min"], line_dash="dot", line_color="#34d399", annotation_text=f"Alt sınır ({pband['min']}g)")
-                    fig.add_hline(y=t["protein"], line_dash="dash", line_color="#94a3b8", annotation_text=f"Hedef ({t['protein']}g)")
-                    fig.update_layout(height=180, margin=dict(l=0, r=0, t=6, b=0), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(color="#94a3b8"))
-                    fig.update_xaxes(showgrid=False)
-                    fig.update_yaxes(gridcolor="rgba(148,163,184,.12)", ticksuffix=" g")
-                    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-                with tab_all:
-                    fig2 = go.Figure()
-                    fig2.add_trace(go.Bar(x=last7["date"], y=last7["protein"], name="Protein", marker_color="#fb923c"))
-                    if "carbs" in last7.columns:
-                        fig2.add_trace(go.Bar(x=last7["date"], y=last7["carbs"], name="Karb", marker_color="#2dd4bf"))
-                    if "fat" in last7.columns:
-                        fig2.add_trace(go.Bar(x=last7["date"], y=last7["fat"], name="Yağ", marker_color="#c084fc"))
-                    fig2.update_layout(barmode="group", height=200, margin=dict(l=0, r=0, t=6, b=0),
-                                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                                       legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                                       font=dict(color="#94a3b8"))
-                    fig2.update_xaxes(showgrid=False)
-                    fig2.update_yaxes(gridcolor="rgba(148,163,184,.12)", ticksuffix=" g")
-                    st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
-    else:
-        b_fat_pct = round(float(S["body"].get("fat_pct") or 0.30) * 100)
-        p_pct = round((t["protein"] * 4) / t["kcal"] * 100) if t["kcal"] else 32
-        c_pct = round((t["carbs"] * 4) / t["kcal"] * 100) if t["kcal"] else 38
-        tiles_html = "".join([
-            ui.tile("Kalori Hedefi", f"{t['kcal']}<small> kcal</small>", f"~{S.get('deficit_now', 500)} kcal açık"),
-            ui.tile("Protein Hedefi", f"{t['protein']}<small> g</small>", f"Bant: {pband['min']}–{pband['max']}g · %{p_pct}", "good"),
-            ui.tile("Sağlıklı Yağ", f"{t['fat']}<small> g</small>", f"Tokluk & Hormon · %{b_fat_pct}"),
-            ui.tile("Karbonhidrat", f"{t['carbs']}<small> g</small>", f"Padel & Kas Glikojeni · %{c_pct}"),
-            ui.tile("Lif Hedefi", f"{FIBER_TARGET}<small> g</small>", "Wegovy GI Konforu", "good"),
-        ])
-        st.markdown(f"<div class='tiles' style='margin-bottom:12px'>{tiles_html}</div>", unsafe_allow_html=True)
-        st.info("Cronometer'dan **dailysummary.csv** yükle; gün içindeki tüketimini ve kalan makrolarını yukarıdaki hedeflere göre canlı karşılaştırırım.")
 
-    with st.container(border=True):
-        st.markdown("<div class='eyebrow' style='margin:0 0 8px'>⚖️ Manuel Kilo Kaydet</div>", unsafe_allow_html=True)
-        c1, c2 = st.columns([2.5, 1], gap="small")
-        nw = c1.number_input("kg", min_value=40.0, max_value=250.0, value=float(latest_weight()[0] or 100.0), step=0.1, label_visibility="collapsed")
-        if c2.button("Kaydet", use_container_width=True, key="nut_weight_save"):
-            iso = TODAY.strftime("%Y-%m-%d")
-            S["weights"] = [x for x in S["weights"] if x["date"] != iso] + [{"date": iso, "w": round(nw, 1)}]
-            compute_targets()
-            _save()
-            st.success("Kalıcı olarak kaydedildi ✓")
-            st.rerun()
+    with tab_plan:
+        _render_meal_planner()
 
-    ws = wegovy_status()
-    with st.expander(f"💉 Wegovy doz & enjeksiyon takibi ({ws['dose_mg']:g} mg · her {ws['inj_day_name']})", expanded=ws["days_until"] == 0):
-        wc1, wc2, wc3 = st.columns([1.2, 1.3, 1.5])
-        cur_dose = ws["dose_mg"] if ws["dose_mg"] in WEGOVY_DOSES else 0.25
-        new_dose = wc1.selectbox("Mevcut doz (mg)", WEGOVY_DOSES, index=WEGOVY_DOSES.index(cur_dose),
-                                 format_func=lambda x: f"{x:g} mg")
-        new_wd = wc2.selectbox("Haftalık enjeksiyon günü", list(range(7)), index=ws["inj_weekday"],
-                               format_func=lambda i: DOW_LONG[i])
-        sel_site = wc3.selectbox("Enjeksiyon bölgesi (rotasyon)", WEGOVY_SITES,
-                                 index=WEGOVY_SITES.index(ws["next_site"]))
-        if new_dose != S["wegovy"].get("dose_mg") or new_wd != S["wegovy"].get("inj_weekday"):
-            S["wegovy"]["dose_mg"] = float(new_dose)
-            S["wegovy"]["inj_weekday"] = int(new_wd)
-            _save()
-            st.rerun()
-        lc1, lc2 = st.columns([2, 1])
-        inj_date = lc1.date_input("Enjeksiyon tarihi", value=TODAY, max_value=TODAY, format="DD.MM.YYYY", key="weg_dt")
-        if lc2.button("💉 Dozu kaydet", use_container_width=True, type="primary"):
-            iso_d = inj_date.isoformat()
-            logs = [x for x in S["wegovy"].get("logs", []) if x.get("date") != iso_d]
-            logs.append({"date": iso_d, "dose": float(new_dose), "site": sel_site})
-            S["wegovy"]["logs"] = sorted(logs, key=lambda x: x["date"])
-            _save()
-            st.success(f"{iso_d} · {new_dose:g} mg ({sel_site}) kaydedildi ✓")
-            st.rerun()
-        logs = S["wegovy"].get("logs") or []
-        if logs:
-            recent_logs = " · ".join(f"**{x['date']}** ({x['dose']:g} mg, {x.get('site','')})" for x in reversed(logs[-4:]))
-            st.caption(f"Son kayıtlar: {recent_logs}")
-        st.caption("💡 Standart titrasyon: 4 haftada bir 0.25 → 0.5 → 1.0 → 1.7 → 2.4 mg (hekim kontrolünde). Enjeksiyon sonrası ilk 48 saatte uygulama RPE hedefini otomatik esnetir.")
-
-    cx = cron_ex_df()
-    if not cx.empty or S["nutrition"] is not None or S["weights"]:
-        nd = len(S["nutrition"]) if S["nutrition"] is not None else 0
-        npad = int(cx["padel"].sum()) if not cx.empty and "padel" in cx else 0
-        st.caption(f"📄 Cronometer: {nd} gün beslenme · {len(S['weights'])} kilo · {len(cx)} seans ({npad} padel) · {len(S['active_kcal'])} gün aktif enerji")
-    else:
-        st.caption("📄 Cronometer'dan dışa aktardığın dosyaları yukarıdan yükle — tek kaynak.")
-
-    wkg = latest_weight()[0] or 100.0
-    with st.expander("⚙️ Hedef ayarları (kalori, protein yöntemi, yaş, boy, aktivite)"):
-        b = S["body"]
-        prev_snapshot = json.dumps(b, sort_keys=True)
-        use_manual = st.checkbox("Kaloriyi elle belirle", value=b.get("kcal_goal") is not None,
-                                 help="Kapalıyken hedef, TDEE − açık ile otomatik hesaplanır.")
-        if use_manual:
-            b["kcal_goal"] = int(st.number_input("Günlük kalori hedefi (kcal)", 1200, 3500,
-                                                 int(b.get("kcal_goal") or 2000), step=50))
-            st.caption(f"~0,5–1%/hafta (bu kiloda ~{wkg*0.005:.1f}–{wkg*0.01:.1f} kg) kas koruma için ideal bant.")
-        else:
-            b["kcal_goal"] = None
-            b["deficit"] = int(st.number_input("Günlük kalori açığı (TDEE'den)", 0, 1200, int(b.get("deficit") or 500), step=50))
-        pmodes = ["adjusted", "strict"]
-        cur_pm = b.get("protein_mode", "adjusted")
-        b["protein_mode"] = st.selectbox(
-            "Protein hedefi hesaplama yöntemi",
-            pmodes,
-            index=pmodes.index(cur_pm if cur_pm in pmodes else "adjusted"),
-            format_func=lambda m: (
-                "Düzeltilmiş ağırlık bandı (150–180g · Wegovy için sürdürülebilir — Önerilen)"
-                if m == "adjusted" else
-                "Tam vücut ağırlığı × 1.8 g/kg (Katı hedef)"
-            ),
-        )
-        fat_options = {
-            "balanced": "Dengeli (Wegovy Uyumlu) — %30 Yağ / %38 Karb (Önerilen)",
-            "low_fat": "Düşük Yağ — %25 Yağ / %43 Karb (Mide hassasiyeti için)",
-            "moderate_fat": "Orta Yağ — %35 Yağ / %33 Karb (Daha yüksek tokluk)",
-            "custom": "Özel Yüzde (Slider ile belirle)",
-        }
-        cur_fm = b.get("fat_mode", "balanced")
-        if cur_fm not in fat_options:
-            cur_fm = "balanced"
-        sel_fm = st.selectbox(
-            "🥑 Yağ & 🍚 Karbonhidrat dağılım tercihi",
-            list(fat_options.keys()),
-            index=list(fat_options.keys()).index(cur_fm),
-            format_func=lambda k: fat_options[k],
-            help="Wegovy kullanırken yüksek yağlı besinler mide boşalmasını geciktirerek bulantı veya reflüyü tetikleyebilir. %25–35 yağ ideal sindirim sağlar; kalan kalori ise antrenman ve Padel için glikojene (karbonhidrata) ayrılır.",
-        )
-        b["fat_mode"] = sel_fm
-        if sel_fm == "balanced":
-            b["fat_pct"] = 0.30
-        elif sel_fm == "low_fat":
-            b["fat_pct"] = 0.25
-        elif sel_fm == "moderate_fat":
-            b["fat_pct"] = 0.35
-        else:
-            cur_pct = int(round(float(b.get("fat_pct") or 0.30) * 100))
-            new_pct = st.slider("Yağ Kalori Payı (%)", 20, 45, cur_pct, step=1)
-            b["fat_pct"] = round(new_pct / 100.0, 2)
-
-        preview_kcal = int(b.get("kcal_goal") or 2000)
-        pband_prev = nutrition.protein_band(wkg, int(b.get("height") or 178), mode=b.get("protein_mode", "adjusted"))
-        prev_prot = pband_prev["target"]
-        prev_fat = round(preview_kcal * float(b["fat_pct"]) / 9)
-        prev_carb = max(0, round((preview_kcal - prev_prot * 4 - prev_fat * 9) / 4))
-        p_prev_pct = round((prev_prot * 4) / preview_kcal * 100)
-        f_prev_pct = round((prev_fat * 9) / preview_kcal * 100)
-        c_prev_pct = max(0, 100 - p_prev_pct - f_prev_pct)
-        st.caption(
-            f"🎯 **Güncel Dağılım ({preview_kcal} kcal):** "
-            f"🥩 **{prev_prot}g Protein** ({prev_prot*4} kcal · %{p_prev_pct}) &nbsp;·&nbsp; "
-            f"🥑 **{prev_fat}g Yağ** ({prev_fat*9} kcal · %{f_prev_pct}) &nbsp;·&nbsp; "
-            f"🍚 **{prev_carb}g Karb** ({prev_carb*4} kcal · %{c_prev_pct}) &nbsp;·&nbsp; "
-            f"🥦 **{FIBER_TARGET}g Lif**"
-        )
-        bd = st.date_input("Doğum tarihi", value=dt.date.fromisoformat(b.get("birth", "1992-03-12")),
-                           min_value=dt.date(1940, 1, 1), max_value=TODAY, format="DD.MM.YYYY")
-        b["birth"] = bd.isoformat()
-        st.caption(f"Yaş: {age_from(b['birth'])}")
-        b["height"] = int(st.number_input("Boy (cm)", 120, 220, int(b["height"])))
-        acts = ["light", "moderate", "high"]
-        b["activity"] = st.selectbox("Aktivite düzeyi", acts, index=acts.index(b["activity"]),
-                                     format_func=lambda x: {"light": "Az hareketli (masa başı)", "moderate": "Orta", "high": "Yüksek"}[x])
-        cur_ptarg = int(b.get("padel_target") or 2)
-        b["padel_target"] = int(st.number_input("Haftalık Padel hedefi (seans/hafta)", 1, 7, cur_ptarg, step=1,
-                                                help="Padel sıklığınıza göre esnek değiştirebilirsiniz (Varsayılan: 2 seans/hafta)."))
-
-        cur_start_date = dt.date.fromisoformat(b.get("start_date") or "2026-10-25")
-        st.markdown("<div style='margin-top:10px;font-weight:700;font-size:12.5px;color:var(--fg)'>Resmi Program Başlangıç Tarihi</div>", unsafe_allow_html=True)
-        col_sd, col_btn25, col_btn26 = st.columns([2, 1, 1], gap="small")
-        with col_sd:
-            new_sd = st.date_input("Başlangıç tarihi", value=cur_start_date, min_value=dt.date(2026, 10, 1),
-                                   max_value=dt.date(2026, 12, 31), format="DD.MM.YYYY", label_visibility="collapsed")
-        with col_btn25:
-            if st.button("25 Ekim", use_container_width=True, key="sd_btn_25"):
-                new_sd = dt.date(2026, 10, 25)
-        with col_btn26:
-            if st.button("26 Ekim", use_container_width=True, key="sd_btn_26"):
-                new_sd = dt.date(2026, 10, 26)
-        b["start_date"] = new_sd.isoformat()
-        st.caption("İğnenin eve varışına göre 25 veya 26 Ekim'i seçebilirsiniz. Tüm sayaçlar, haritalar ve istatistikler bu tarihten itibaren başlar.")
-
-        if json.dumps(b, sort_keys=True) != prev_snapshot:
-            compute_targets()
-            _save()
-            st.toast("Hedef ayarların kalıcı olarak kaydedildi ✓")
-        st.caption("Kilo değiştikçe hedefler otomatik güncellenir ve yerel SQLite veritabanında saklanır.")
-
-        st.markdown("<hr style='margin:14px 0 10px;border-color:var(--line)'>", unsafe_allow_html=True)
-        st.markdown("<div style='font-weight:800;font-size:12.5px;color:var(--fg)'>📅 Google Takvim Entegrasyonu</div>", unsafe_allow_html=True)
-        try:
-            sec_url = st.secrets.get("GOOGLE_CALENDAR_ICAL_URL") or st.secrets.get("GCAL_ICAL_URL")
-        except Exception:
-            sec_url = None
-        cur_cal_url = sec_url or S.get("settings", {}).get("gcal_url", "")
-        cal_events = calendar_padel_events()
-        if sec_url:
-            st.success(f"✓ Google Takvim `secrets.toml` üzerinden bağlı ({len(cal_events)} Padel seansı tespit edildi).")
-        elif cur_cal_url:
-            st.success(f"✓ Google Takvim bağlı ({len(cal_events)} Padel seansı tespit edildi).")
-        else:
-            st.caption("Google Takvim'den Padel maçlarını otomatik çekmek için gizli iCal linkinizi `.streamlit/secrets.toml` dosyasına veya aşağıdaki kutuya ekleyebilirsiniz.")
-
-        new_cal_url = st.text_input(
-            "Google Takvim Gizli iCal URL'si (.ics)",
-            value=cur_cal_url or "",
-            type="password",
-            help="Google Takvim → Ayarlar → İlgili Takvim → iCal biçiminde gizli adres",
-            key="gcal_url_input",
-            disabled=bool(sec_url),
-        )
-        if not sec_url and new_cal_url != (S.get("settings", {}).get("gcal_url") or ""):
-            S.setdefault("settings", {})["gcal_url"] = new_cal_url.strip()
-            _save()
-            st.cache_data.clear()
-            st.rerun()
-
-    t = S["targets"]
-    pband = S["protein_band"]
-    wl = S.get("weekly_loss", 0.0)
-    wlpct = (wl / wkg * 100) if wkg else 0
-    manual = S["body"].get("kcal_goal") is not None
-    src = "elle seçtiğin hedef" if manual else f"TDEE ~{S['tdee']} − {S['body']['deficit']} açık"
-    prot_desc = (
-        f"<b>{t['protein']} g protein</b> (kas koruma bandı: <b>{pband['min']}–{pband['max']} g</b> · düzeltilmiş {pband['eff_weight']} kg)"
-        if pband.get("mode") == "adjusted" else
-        f"<b>{t['protein']} g protein</b> (~{PROTEIN_PER_KG} g/kg tam ağırlık)"
-    )
-    st.markdown(
-        f"<div class='fcard' style='margin-top:8px'><div class='eyebrow'>Senin için hesaplanan hedef</div>"
-        f"<div style='font-size:12.5px;line-height:1.6;color:var(--fg)'><b>{t['kcal']} kcal/gün</b> ({src})"
-        f"&nbsp;·&nbsp;{prot_desc}"
-        f"&nbsp;·&nbsp;{t['carbs']} g karb · {t['fat']} g yağ · {FIBER_TARGET} g lif</div>"
-        f"<div style='margin-top:8px;font-size:12px;color:var(--fg)'>📉 Tahmini kayıp: <b class='good'>~{wl:.2f} kg/hafta</b> "
-        f"(<span class='muted'>%{wlpct:.2f}/hafta · günde ~{S.get('deficit_now',0)} kcal açık</span>)</div></div>",
-        unsafe_allow_html=True,
-    )
+    with tab_grocery:
+        _render_weekly_grocery()
 
 
 # ---------------- nav (top bar - automatic system theme) ----------------

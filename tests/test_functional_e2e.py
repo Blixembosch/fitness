@@ -437,3 +437,34 @@ def test_functional_workout_default_before_start_date_is_upper_a():
         rendered_md = " ".join(str(m.value) for m in at.markdown)
         assert "Üst A" in rendered_md
 
+
+def test_functional_meal_planner_tabs_and_options():
+    """Verify that page='nutrition' renders 3 tabs, meal selects, grocery list and whatsapp code blocks."""
+    with tempfile.TemporaryDirectory() as td:
+        os.environ["FITNESS_DB_PATH"] = str(Path(td) / "test.db")
+        at = _run_app("nutrition")
+        assert not at.exception
+
+        # Check that meal selectboxes are present
+        sb_keys = [s.key for s in at.selectbox]
+        assert "mp_sel_breakfast" in sb_keys
+        assert "mp_sel_lunch" in sb_keys
+        assert "mp_sel_snack" in sb_keys
+        assert "mp_sel_dinner" in sb_keys
+
+        # Check that preset button is present
+        btn_apply = next((b for b in at.button if b.key == "btn_apply_preset"), None)
+        assert btn_apply is not None
+
+        # Verify WhatsApp code blocks are rendered
+        code_texts = " ".join(str(c.value) for c in at.code)
+        assert "ATES FAM Fitness" in code_texts
+        assert "KAHVALTI" in code_texts
+        assert "Albert Heijn" in code_texts
+
+        # Apply preset button click
+        btn_apply.click().run()
+        assert not at.exception
+        assert at.session_state["meal_planner"]["breakfast"] is not None
+
+
