@@ -10,10 +10,11 @@ Wegovy (GLP-1) sürecinde **kas kütlesini koruma/artırma, yağ yakımı ve met
 - **Plan:** Pazartesi–Pazar döngülü haftalık takvim ve hafta gezintisi (Hafta 1..12). 25 Ekim 2026 Pazar günü ilk antrenman (Üst A), kalori/protein takibi ve başlangıç tartımıyla resmi program başlar; ilk Wegovy enjeksiyonu ise **27 Ekim 2026 Salı** günü (ve takip eden her Salı) uygulanacak şekilde planlanır. Antrenman programı statik şablon yerine tamamen akıllı ve dinamiktir: Google Takvim'deki Padel maçlarına göre bacak/güç günlerini (örn. Salı padeli öncesi Pazartesi Alt A) ve toparlanma günlerini dinamik olarak dengeler; 1..10 adımlık güç ve bitiriş kartlarını gün gün sunar.
 - **Antrenman:** Numaralandırılmış minimalist adımlar (1..9), egzersiz bazlı kas haritaları, dambıl ağırlık takibi, tek tıkla kalıcı antrenman tamamlama/geri alma ve esnek Padel seansı kaydı & hızlı hedef yönetimi.
 - **İstatistik:** 25 Ekim 2026 resmi başlangıç tarihi bazlı dinamik filtreleme; hafta, ay ve 3 aylık (ISO hafta numaralı) antrenman/padel dağılımı, esnek padel hedeflerine göre güncellenen periyot barları, haftalık % kilo kaybı güvenlik göstergesi (hızlı kas kaybı uyarısı), kanıta dayalı hedefler tablosunda Sağlıklı Yağ ve Karbonhidrat denge takibi ve çalışılan kasların görsel anatomik haritası.
-- **Beslenme:** 3 sekmeden oluşan kapsamlı beslenme ve menü yönetim merkezi:
+- **Beslenme:** 3 sekmeden oluşan kapsamlı beslenme, menü ve takviye yönetim merkezi:
   1. *Günlük Takip & Makrolar:* Cronometer dışa aktarımları (dailysummary, exercises, biometrics) üzerinden kalori, protein, lif, sağlıklı yağ ve karbonhidrat takibi; Wegovy sindirim konforu ve antrenman performansına göre yapılandırılabilir makro dağılımı (Dengeli %30 Yağ / %38 Karb, Düşük Yağ %25, Orta Yağ %35 veya Özel % slider), canlı makro barları ve son 7 günlük çoklu makro trend grafikleri; Wegovy doz/enjeksiyon bölgesi rotasyonu, haftalık dinamik padel hedefi, Google Takvim iCal entegrasyonu ve kalori/protein yönetimi.
-  2. *4 Öğünlü Akıllı Menü Planlayıcı (Doğrudan Günlük Tüketim Kaydı):* Wegovy'de mide boşalmasını geciktiren GLP-1 mekanizmasını zorlamamak adına günlük hedefi (`~160g Protein · ~67g Yağ · ~189g Karbonhidrat · ~28g Lif · ~2000 kcal`) 4 dengeli öğüne yayan akıllı planlayıcı. Evdeki mevcut malzemeler (AH Magere Kwark, Hüttenkäse light, Impact Whey, Upfront Vanilla, AH Protein Mousse/Pudding, XXL Fitmousse, Yfood/Huel, Alpro Almond, Organik Yumurta, Fıstık Ezmesi, Tavuk, Yağsız Kıyma, Bezelye, Brokoli vb.) baz alınarak her öğün için 5'er kanıta dayalı opsiyon (toplam 20 opsiyon), gramajlı tarifler, canlı makro fark göstergeleri ve akşamdan eşe tek tıkla gönderilebilen kopyalanabilir WhatsApp günlük menü çıktısı sunar. **Cronometer'a her gün tek tek yiyecek girme zorunluluğunu ortadan kaldıran doğrudan tüketim kaydı:** Tüketilen öğünler (tam gün veya öğün bazlı) tek tıkla uygulamaya ve kalıcı veritabanına kaydedilir; Ana Sayfa ve Beslenme makro barları anlık olarak güncellenir. İstenirse Cronometer Web için uyumlu `dailysummary.csv` çıktısı da tek tıkla üretilebilir.
-  3. *7 Günlük Menü & Alışveriş Listesi:* Haftalık Padel maçları (Salı-Çarşamba) ve güç antrenmanları (Pazar Üst A, Perşembe Alt A, Cumartesi Üst B) ile senkronize 7 günlük örnek menü ve reyonlara göre ayrılmış (Kasap, Süt & Şarküteri, Manav, Kuru Gıda/Kiler, Evdeki Stoklar) haftalık alışveriş listesi + WhatsApp export.
+  2. *4 Öğünlü Akıllı Menü Planlayıcı (Doğrudan Günlük Tüketim Kaydı) & Klinik Takviye Protokolü:* Wegovy'de mide boşalmasını geciktiren GLP-1 mekanizmasını zorlamamak adına günlük hedefi (`~160g Protein · ~67g Yağ · ~189g Karbonhidrat · ~28g Lif · ~2000 kcal`) 4 dengeli öğüne yayan akıllı planlayıcı. Evdeki mevcut malzemeler (AH Magere Kwark, Hüttenkäse light, Impact Whey, Upfront Vanilla, AH Protein Mousse/Pudding, XXL Fitmousse, Yfood/Huel, Alpro Almond, Organik Yumurta, Fıstık Ezmesi, Tavuk, Yağsız Kıyma, Bezelye, Brokoli vb.) baz alınarak her öğün için 5'er kanıta dayalı opsiyon (toplam 20 opsiyon), gramajlı tarifler, canlı makro fark göstergeleri ve akşamdan eşe tek tıkla gönderilebilen kopyalanabilir WhatsApp günlük menü çıktısı sunar. **Cronometer'a her gün tek tek yiyecek girme zorunluluğunu ortadan kaldıran doğrudan tüketim kaydı:** Tüketilen öğünler tek tıkla uygulamaya ve kalıcı veritabanına kaydedilir; Ana Sayfa ve Beslenme makro barları anlık olarak güncellenir. **Klinik Takviye Protokolü:** Sabah (Ocean Multivitamin + D3 Sprey), Öğle (Ocean C Vitamini + Bromelain) ve Gece (Orzax ExtraMag Magnezyum) zamanlama, doz ve klinik faydaları öğün kartlarına ve interaktif günlük takip kontrol listesine entegredir.
+  3. *7 Günlük Menü & Alışveriş Listesi:* Haftalık Padel maçları (Salı-Çarşamba) ve güç antrenmanları (Pazar Üst A, Perşembe Alt A, Cumartesi Üst B) ile senkronize 7 günlük örnek menü ve reyonlara göre ayrılmış haftalık alışveriş listesi + WhatsApp export.
+  4. *Evdeki Ürünler Kalori Kütüphanesi & Akıllı Besin Bulucu:* Evdeki 20 temel ürünün gramaj ve makrolarını içeren yerel kütüphane. Arayüzden sadece ürün adı ve gramaj girilerek çalışan **Akıllı Besin Bulucu (Open Food Facts Hollanda API + 30+ yerel gıda)**, canlı metrik hesaplayıcı, kütüphanede anlık arama (`🔍 Kütüphanede Ara`), kategori filtresi ve eklenen ürünleri düzenleme (`✏️ Düzenle`) / silme (`🗑️ Sil`) imkanı.
 
 ---
 
@@ -23,6 +24,12 @@ Her güç antrenmanı (Üst A, Alt A, Üst B), glikojen depolarını ve kas küt
 1. **Adım 1 — Eliptik Isınma (5 dk):** Düşük eklem yüküyle nabız ve eklemleri hazırlar.
 2. **Adım 2..N-2 — Güç & Hipertrofi:** Kas koruma ve artırma sinyali veren bileşik dambıl ve vücut ağırlığı egzersizleri.
 3. **Son 2 Adım — Su Küreği (10 dk) + Eliptik (10 dk) Yağ Yakım Bitirişi:** Ağırlık sonrası glikojen azalmışken tam-vücut (sırt + core + bacak) metabolik yağ yakımı ve Zone-2 aktif soğuma.
+
+---
+
+## Yol Haritası ve Mimari Standartlar
+
+Projenin uzun vadeli vizyonu, tamamlanan kilometre taşları ve aktif sprint planı [ROADMAP.md](ROADMAP.md) dosyasında belgelenmiştir.
 
 ---
 
@@ -55,7 +62,7 @@ Her güç antrenmanı (Üst A, Alt A, Üst B), glikojen depolarını ve kas küt
 
 ## Test ve Kalite Güvencesi
 
-Proje, 116 otomatik birim, erişilebilirlik, Plan-Antrenman akıllı yönlendirme, 4 öğünlü menü planlayıcı ve 5 sayfanın CSS/bileşen bütünlüğünü denetleyen Streamlit `AppTest` fonksiyonel testi ile korunur:
+Proje, 120 otomatik birim, erişilebilirlik, Plan-Antrenman akıllı yönlendirme, 4 öğünlü menü planlayıcı, Doküman ve Kapsam Bekçileri (`tests/test_doc_and_scope_guard.py`) ve 5 sayfanın CSS/bileşen bütünlüğünü denetleyen Streamlit `AppTest` fonksiyonel testi ile korunur:
 ```bash
 /usr/local/bin/python3 run_tests.py
 ```
